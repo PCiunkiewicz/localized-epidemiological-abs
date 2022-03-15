@@ -12,7 +12,6 @@ Epidemiological modeling is used, under certain assumptions, to represent the sp
 src/
 ├── benchmark.py
 ├── bulk-stats.sh
-├── experiment.ipynb
 ├── experiment.py
 ├── export.py
 ├── launch.py
