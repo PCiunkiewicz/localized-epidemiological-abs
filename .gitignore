@@ -1,0 +1,8 @@
+__pycache__/
+.vscode/
+.DS_Store
+.ipynb_checkpoints/
+
+*.hdf5
+src/exports/*.pdf
+src/exports/*.mp4
