@@ -9,9 +9,8 @@ from enum import Enum
 
 import numpy as np
 
-from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.grid import Grid
-from pathfinding.finder.a_star import AStarFinder
+from pathfinding.finder.bi_a_star import BiAStarFinder
 
 
 class Status(Enum):
@@ -61,7 +60,7 @@ class Agent:
         self.dt_quarantine = None
 
         self.grid = Grid(matrix=self.scenario.Terrain.Masks.VALID.T)
-        self.finder = AStarFinder(diagonal_movement=DiagonalMovement.always)
+        self.finder = BiAStarFinder()
 
         if self.start_zone:
             self.x, self.y = self.scenario.get_idx(self.start_zone)
@@ -193,7 +192,7 @@ class SIRAgent(Agent):
         if self.contagious():
             self.scenario.contaminate(self.x, self.y)
 
-    def move(self):
+    def move(self, trivial=False):
         """Movement decision making for the Agent
         """
         self.recover()
@@ -210,5 +209,6 @@ class SIRAgent(Agent):
         else:
             self.set_task(wait=60 // self.t_step)
 
-        self.droplet_expose()
-        self.droplet_spread()
+        if not trivial:
+            self.droplet_expose()
+            self.droplet_spread()

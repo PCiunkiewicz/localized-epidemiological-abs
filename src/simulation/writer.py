@@ -56,6 +56,7 @@ def save_agents(port, filename):
         socket.setsockopt(zmq.SUBSCRIBE, b'agents')
         socket.setsockopt(zmq.SUBSCRIBE, b'virus')
         socket.setsockopt(zmq.SUBSCRIBE, b'timesteps')
+        socket.setsockopt(zmq.SUBSCRIBE, b'trivial')
         socket.setsockopt(zmq.SUBSCRIBE, b'')
         while True:
             topic = socket.recv_string()
@@ -79,10 +80,14 @@ def save_agents(port, filename):
         virus = f['virus'].__array__().round().astype(np.int16)
         f.close()
 
-        with h5py.File(filename, 'w') as f:
-            f.create_dataset('agents', data=agents, compression='gzip', compression_opts=9)
-            f.create_dataset('virus', data=virus, compression='gzip', compression_opts=9)
-            f.create_dataset('timesteps', data=timesteps, compression='gzip', compression_opts=9)
-    elif data == 'trivial':
+    elif topic == 'trivial':
+        timesteps = f['timesteps'].__array__()
+        agents = f['agents'].__array__()
+        virus = np.zeros(shape=data['virus_shape'], dtype=np.int8)
         f.close()
-        shutil.copy('trivial.hdf5', filename) # need to create trivial output based on agents and map
+        # shutil.copy('trivial.hdf5', filename) # need to create trivial output based on agents and map
+
+    with h5py.File(filename, 'w') as f:
+        f.create_dataset('agents', data=agents, compression='gzip', compression_opts=9)
+        f.create_dataset('timesteps', data=timesteps, compression='gzip', compression_opts=9)
+        f.create_dataset('virus', data=virus, compression='gzip', compression_opts=9)

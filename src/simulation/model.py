@@ -21,6 +21,7 @@ class Model:
     """
 
     def __init__(self, config, AgentClass, ScenarioClass):
+        self.trivial = False
         self.Agent = AgentClass
         self.scenario = ScenarioClass(config)
         self.__dict__.update(self.scenario.ScenarioParameters)
@@ -72,8 +73,9 @@ class SIRModel(Model):
         """
         for _ in range(self.save_resolution):
             for p in self.population:
-                p.move()
-            self.scenario.ventilate()
+                p.move(trivial=self.trivial)
+            if not self.trivial:
+                self.scenario.ventilate()
 
         self.scenario.dt += dt.timedelta(seconds=self.t_step*self.save_resolution)
         if self.scenario.dt.time().hour >= 19:
@@ -98,15 +100,13 @@ def simulate_sir_model(queue, event, config_file):
         Path to scenario configuration (json).
     """
     model = SIRModel(config_file)
-    if all([p.is_('SUSCEPTIBLE') for p in model.population]):
-        event.set()
-        queue.put({"topic": "", "data": "trivial"})
-        print("TRIVIAL START CASE")
-        return
 
     n_iter = 0
     model_time = 0
     start_time = time.perf_counter()
+
+    if all([p.is_('SUSCEPTIBLE') for p in model.population]):
+        model.trivial = True
 
     while n_iter < model.max_iter:
         if queue.empty():
@@ -115,29 +115,35 @@ def simulate_sir_model(queue, event, config_file):
             model.model_step()
             model_time += time.perf_counter() - start
             queue.put({
-                "topic": "timesteps",
-                "data": model.scenario.dt.timestamp()})
-            queue.put({"topic": "agents", "data": model.get_agents()})
-            queue.put({"topic": "virus", "data": model.scenario.virus.copy()})
+                'topic': 'timesteps',
+                'data': model.scenario.dt.timestamp()})
+            queue.put({'topic': 'agents', 'data': model.get_agents()})
+            if not model.trivial:
+                queue.put({'topic': 'virus', 'data': model.scenario.virus.copy()})
 
             sim_dt = model.scenario.dt.strftime('%y-%m-%d %H:%M:%S')
             print(f'Model Step: {n_iter}    Runtime: {model_time:.2f}s    SimDT: {sim_dt}', end='\r')
 
     event.set()
-    queue.put({"topic": "", "data": "stop"})
+    if model.trivial:
+        queue.put({'topic': 'trivial', 'data': {
+            'virus_shape': (model.max_iter, *model.scenario.shape)
+        }})
+    else:
+        queue.put({'topic': '', 'data': 'stop'})
 
-    print("\n" + "=" * 50)
-    print("Performance Statistics")
-    print("-" * 50)
-    print(f"Total iterations: {n_iter}")
-    print(f"Total simulation steps: {n_iter * model.save_resolution}")
-    print(f"Total simulation time: {model_time}")
+    print('\n' + '=' * 50)
+    print('Performance Statistics')
+    print('-' * 50)
+    print(f'Total iterations: {n_iter}')
+    print(f'Total simulation steps: {n_iter * model.save_resolution}')
+    print(f'Total simulation time: {model_time}')
 
-    print("-" * 50)
+    print('-' * 50)
     try:
-        print(f"Avg iter time: {(time.perf_counter()-start_time)/n_iter}")
-        print(f"Avg model cycle time: {model_time/n_iter}")
-        print(f"Avg simulation step time: {model_time/n_iter/model.save_resolution}")
+        print(f'Avg iter time: {(time.perf_counter()-start_time)/n_iter}')
+        print(f'Avg model cycle time: {model_time/n_iter}')
+        print(f'Avg simulation step time: {model_time/n_iter/model.save_resolution}')
     except ZeroDivisionError:
         pass
-    print("=" * 50)
+    print('=' * 50)
