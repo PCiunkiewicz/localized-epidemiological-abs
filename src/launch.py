@@ -6,7 +6,8 @@ file output location.
 """
 
 import time
-from multiprocessing import Queue, Process, Event
+import socket
+from multiprocessing import Queue, Process, Event, cpu_count
 from concurrent.futures import ProcessPoolExecutor as Pool
 
 import numpy as np
@@ -16,6 +17,9 @@ from pathlib import Path
 from simulation.model import simulate_sir_model
 from simulation.publisher import publisher
 from simulation.writer import save_agents
+
+
+PORT_RANGE = 100
 
 
 class SimController(object):
@@ -57,25 +61,24 @@ class SimController(object):
 
 
 @arg('config', help='Path to the config file; example `scenarios/eng301.json`')
-def run_sim(config, runs=1, offset=0, port=5556, save_dir='outputs'):
+def run_sim(config, run_id=0, port=5556, save_dir='outputs'):
     Path(save_dir).mkdir(exist_ok=True)
+    start = time.perf_counter()
 
-    for i in range(offset, runs+offset):
-        start = time.perf_counter()
+    sim = SimController(
+        Path(config),
+        port=port,
+        outfile=Path(f'{save_dir}/simulation_{run_id}_{port}.hdf5')
+    )
 
-        sim = SimController(
-            Path(config),
-            port=port,
-            outfile=Path(f'{save_dir}/simulation_{i}.hdf5')
-        )
-
-        sim.launch()
-        print('\nSimulating...')
-        while not sim.stop_simulation.is_set():
-            time.sleep(0.1)
-        print('Terminating...')
-        sim.terminate()
-        print(f'Final run time: {time.perf_counter() - start}\n')
+    sim.launch()
+    print('\nSimulating...')
+    while not sim.stop_simulation.is_set():
+        time.sleep(0.1)
+    print('Terminating...')
+    sim.terminate()
+    print(f'Final run time: {time.perf_counter() - start}\n')
+    return
 
 
 def _run_args(args):
@@ -83,9 +86,13 @@ def _run_args(args):
 
 
 @arg('config', help='Path to the config file; example `scenarios/eng301.json`')
-def run_parallel(config, runs=4, offset=0, base_port=5556, n_jobs=4):
-    splits = np.array_split(range(offset, runs+offset), n_jobs)
-    args = [(config, len(x), min(x), base_port+i) for i,x in enumerate(splits)]
+def run_parallel(config, runs=4, offset=0, base_port=5556, n_jobs=None):
+    if not n_jobs:
+        n_jobs = max(cpu_count() - 1, 1)
+
+    run_ids = range(offset, runs + offset)
+    ports = np.arange(runs) % PORT_RANGE + base_port
+    args = [(config, run_id, port) for run_id, port in zip(run_ids, ports)]
 
     with Pool(max_workers=n_jobs) as pool:
         pool.map(_run_args, args)
