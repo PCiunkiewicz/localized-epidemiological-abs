@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 from matplotlib import animation, image
 
 from tools.utils import reshape, str_date, STATUS_COLOR
-from simulation.agent import Status
+from simulation.types import Status
+from simulation.scenario import VIRUS_SCALE
 
 
 class AnimateSim:
@@ -31,7 +32,7 @@ class AnimateSim:
         """
         _, ax = plt.subplots(figsize=[10, 10])
         ax.imshow(self.img)
-        im = ax.imshow(self.virus[i] != 0, alpha=self.virus[i] / 2**14, cmap=cmap)
+        im = ax.imshow(self.virus[i] != 0, alpha=self.virus[i] / VIRUS_SCALE, cmap=cmap)
         tx = ax.text(1, 2, str_date(self.timesteps[i]), c='w', fontsize=14)
 
         plot_ref = []
@@ -48,7 +49,7 @@ class AnimateSim:
         Use with matplotlib `animation.FuncAnimation`.
         """
         self.im.set_data(self.virus[i] != 0)
-        self.im.set_alpha(self.virus[i] / 2**14)
+        self.im.set_alpha(self.virus[i] / VIRUS_SCALE)
         self.tx.set_text(str_date(self.timesteps[i]))
         for status, ref in zip(Status, self.plot_ref):
             ref.set_data(*reshape(self.agents[i], status.value))

@@ -15,7 +15,7 @@ from matplotlib import image
 from tqdm import tqdm
 
 from simulation.utils import AttrDict
-from simulation.agent import Status
+from simulation.types import Status
 
 sns.set('paper')
 
@@ -73,7 +73,7 @@ class StatsSimComplete:
         with open(simfile) as file:
             cfg = AttrDict(json.load(file))
             param = cfg.ScenarioParameters
-            n_agents = cfg.Agents.Random.n_agents + len(cfg.Agents.Custom)
+            n_agents = cfg.agents.random.n_agents + len(cfg.agents.custom)
             self.shape = (param.max_iter, n_agents)
 
         with Pool(6) as p:

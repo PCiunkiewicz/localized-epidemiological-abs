@@ -6,7 +6,6 @@ of numpy arrays without pickling the Python objects.
 """
 
 import time
-import shutil
 
 import zmq
 import h5py
@@ -30,9 +29,7 @@ def create_dataset(f, data, name='default'):
         name=name,
         shape=(0,) + data.shape,
         maxshape=(None,) + data.shape,
-        dtype=data.dtype,
-        # compression='gzip',
-        # compression_opts=9
+        dtype=data.dtype
     )
 
 
@@ -74,20 +71,20 @@ def save_agents(port, filename):
                 break
         time.sleep(0.5)
 
+    virus = None
     if data == 'stop':
-        timesteps = f['timesteps'].__array__()
-        agents = f['agents'].__array__()
-        virus = f['virus'].__array__().round().astype(np.int16)
-        f.close()
+        if 'virus' in f:
+            virus = f['virus'].__array__().round().astype(np.int16)
 
     elif topic == 'trivial':
-        timesteps = f['timesteps'].__array__()
-        agents = f['agents'].__array__()
         virus = np.zeros(shape=data['virus_shape'], dtype=np.int8)
-        f.close()
-        # shutil.copy('trivial.hdf5', filename) # need to create trivial output based on agents and map
+
+    timesteps = f['timesteps'].__array__()
+    agents = f['agents'].__array__()
+    f.close()
 
     with h5py.File(filename, 'w') as f:
         f.create_dataset('agents', data=agents, compression='gzip', compression_opts=9)
         f.create_dataset('timesteps', data=timesteps, compression='gzip', compression_opts=9)
-        f.create_dataset('virus', data=virus, compression='gzip', compression_opts=9)
+        if virus is not None:
+            f.create_dataset('virus', data=virus, compression='gzip', compression_opts=9)

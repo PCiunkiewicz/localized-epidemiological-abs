@@ -6,7 +6,6 @@ file output location.
 """
 
 import time
-import socket
 from multiprocessing import Queue, Process, Event, cpu_count
 from concurrent.futures import ProcessPoolExecutor as Pool
 
@@ -68,7 +67,7 @@ def run_sim(config, run_id=0, port=5556, save_dir='outputs'):
     sim = SimController(
         Path(config),
         port=port,
-        outfile=Path(f'{save_dir}/simulation_{run_id}_{port}.hdf5')
+        outfile=Path(f'{save_dir}/simulation_{run_id}.hdf5')
     )
 
     sim.launch()

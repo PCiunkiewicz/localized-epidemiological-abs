@@ -2,6 +2,7 @@ __pycache__/
 .vscode/
 .DS_Store
 .ipynb_checkpoints/
+.mypy_cache/
 
 *.hdf5
 src/exports/*.pdf

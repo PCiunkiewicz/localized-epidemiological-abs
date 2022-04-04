@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 from matplotlib import image
 
 from tools.utils import reshape, str_date, STATUS_COLOR
-from simulation.agent import Status
+from simulation.types import Status
+from simulation.scenario import VIRUS_SCALE
 
 
 class SnapshotSim:
@@ -30,7 +31,7 @@ class SnapshotSim:
         """
         _, ax = plt.subplots(figsize=[10, 10])
         ax.imshow(self.img)
-        ax.imshow(self.virus[i] != 0, alpha=self.virus[i] / 2**14, cmap=cmap)
+        ax.imshow(self.virus[i] != 0, alpha=self.virus[i] / VIRUS_SCALE, cmap=cmap)
         ax.text(1, 2, str_date(self.timesteps[i]), c='w', fontsize=14)
 
         plot_ref = []

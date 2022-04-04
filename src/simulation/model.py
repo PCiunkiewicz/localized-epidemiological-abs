@@ -7,58 +7,64 @@ the simulation due to the way that Python objects are passed
 between processes and threads.
 """
 
+import json
 import time
 import datetime as dt
+from abc import ABC, abstractmethod
 
 import numpy as np
 
-from simulation.scenario import SIRScenario
-from simulation.agent import SIRAgent
+from simulation.scenario import SIRScenario, Scenario
+from simulation.agent import SIRAgent, Agent
+from simulation.types.agent import AgentSpec
+from simulation.types.scenario import ScenarioSpec
 
 
-class Model:
+class Model(ABC):
     """Base Model class for simulation.
     """
 
-    def __init__(self, config, AgentClass, ScenarioClass):
+    def __init__(self, config: str, AgentClass: type, ScenarioClass: type):
         self.trivial = False
-        self.Agent = AgentClass
-        self.scenario = ScenarioClass(config)
-        self.__dict__.update(self.scenario.ScenarioParameters)
 
-        self.population = []
-        self.create_agents()
+        with open(config) as json_file:
+            cfg = json.load(json_file)
+            self.scenario: Scenario = ScenarioClass(ScenarioSpec.from_dict(cfg['scenario']))
+            self.sim = self.scenario.sim
 
-    def create_agents(self):
+        self.population: list[Agent] = []
+        self.create_agents(cfg['agents'], AgentClass)
+
+    def create_agents(self, config: dict, AgentClass: type):
         """Instantiate agents from configuration file.
         """
-        for _ in range(self.scenario.Agents.Random.n_agents):
-            agent_spec = self.scenario.Agents.Default.copy()
-            agent = self.Agent(self.scenario, agent_spec)
-            agent.urgency = np.random.uniform(0.75, 0.99)
+        for _ in range(config['random']['n_agents']):
+            spec = config['default'].copy()
+            spec['info']['urgency'] = np.random.uniform(0.75, 0.99)
+            agent = AgentClass(self.scenario, AgentSpec.from_dict(spec))
             self.population.append(agent)
 
-        for i in range(self.scenario.Agents.Random.n_infected):
+        for i in range(config['random']['n_infected']):
             self.population[i].infect()
 
-        for custom_agent in self.scenario.Agents.Custom:
-            agent_spec = self.scenario.Agents.Default.copy()
-            agent_spec.update(custom_agent)
-            agent = self.Agent(self.scenario, agent_spec)
+        for custom_agent in config['custom']:
+            spec = config['default'].copy()
+            for key, val in custom_agent.items():
+                spec[key].update(val)
+            agent = AgentClass(self.scenario, AgentSpec.from_dict(spec))
             self.population.append(agent)
 
-    def get_agents(self):
+    def get_agents(self) -> np.ndarray:
         """Get position and status of all agents.
-
-        Returns
-        -------
-        ndarray
-            Array containing agent position and status.
         """
         ret = []
         for p in self.population:
-            ret.append((p.x, p.y, p.status.value))
+            ret.append((*p.pos, p.status.value))
         return np.array(ret)
+
+    @abstractmethod
+    def model_step(self):
+        pass
 
 
 class SIRModel(Model):
@@ -71,16 +77,16 @@ class SIRModel(Model):
     def model_step(self):
         """Steps the simulation forward one iteration
         """
-        for _ in range(self.save_resolution):
+        for _ in range(self.sim.save_resolution):
             for p in self.population:
                 p.move(trivial=self.trivial)
             if not self.trivial:
                 self.scenario.ventilate()
 
-        self.scenario.dt += dt.timedelta(seconds=self.t_step*self.save_resolution)
+        self.scenario.dt += dt.timedelta(seconds=self.sim.t_step * self.sim.save_resolution)
         if self.scenario.dt.time().hour >= 19:
             self.scenario.dt += dt.timedelta(hours=12)
-            self.scenario.virus[:] = 0
+            self.scenario.virus.matrix[:] = 0
 
 
 def simulate_sir_model(queue, event, config_file):
@@ -107,8 +113,9 @@ def simulate_sir_model(queue, event, config_file):
 
     if all([p.is_('SUSCEPTIBLE') for p in model.population]):
         model.trivial = True
+        print('TRIVIAL')
 
-    while n_iter < model.max_iter:
+    while n_iter < model.sim.max_iter:
         if queue.empty():
             n_iter += 1
             start = time.perf_counter()
@@ -118,16 +125,16 @@ def simulate_sir_model(queue, event, config_file):
                 'topic': 'timesteps',
                 'data': model.scenario.dt.timestamp()})
             queue.put({'topic': 'agents', 'data': model.get_agents()})
-            if not model.trivial:
-                queue.put({'topic': 'virus', 'data': model.scenario.virus.copy()})
+            if not model.trivial and model.sim.save_verbose:
+                queue.put({'topic': 'virus', 'data': model.scenario.virus.matrix.copy()})
 
             sim_dt = model.scenario.dt.strftime('%y-%m-%d %H:%M:%S')
             print(f'Model Step: {n_iter}    Runtime: {model_time:.2f}s    SimDT: {sim_dt}', end='\r')
 
     event.set()
-    if model.trivial:
+    if model.trivial and model.sim.save_verbose:
         queue.put({'topic': 'trivial', 'data': {
-            'virus_shape': (model.max_iter, *model.scenario.shape)
+            'virus_shape': (model.sim.max_iter, *model.sim.shape)
         }})
     else:
         queue.put({'topic': '', 'data': 'stop'})
@@ -136,14 +143,14 @@ def simulate_sir_model(queue, event, config_file):
     print('Performance Statistics')
     print('-' * 50)
     print(f'Total iterations: {n_iter}')
-    print(f'Total simulation steps: {n_iter * model.save_resolution}')
+    print(f'Total simulation steps: {n_iter * model.sim.save_resolution}')
     print(f'Total simulation time: {model_time}')
 
     print('-' * 50)
     try:
-        print(f'Avg iter time: {(time.perf_counter()-start_time)/n_iter}')
-        print(f'Avg model cycle time: {model_time/n_iter}')
-        print(f'Avg simulation step time: {model_time/n_iter/model.save_resolution}')
+        print(f'Avg iter time: {(time.perf_counter()-start_time) / n_iter}')
+        print(f'Avg model cycle time: {model_time / n_iter}')
+        print(f'Avg simulation step time: {model_time / n_iter / model.sim.save_resolution}')
     except ZeroDivisionError:
         pass
     print('=' * 50)
