@@ -45,6 +45,7 @@ class Scenario(ABC):
         """
         self.virus.matrix[x, y] += concentration
 
+
 class SIRScenario(Scenario):
     """Subclassed scenario for SIR simulation.
     """

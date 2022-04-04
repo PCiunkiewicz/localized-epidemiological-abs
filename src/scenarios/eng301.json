@@ -117,7 +117,7 @@
       }
     }
   },
-  "StatusColor": {
+  "status_color": {
     "SUSCEPTIBLE": "#ffffff",
     "INFECTED": "#ff0000",
     "RECOVERED": "#00ff00",

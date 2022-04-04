@@ -7,3 +7,4 @@ __pycache__/
 *.hdf5
 src/exports/*.pdf
 src/exports/*.mp4
+test.py
