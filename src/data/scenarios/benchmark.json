@@ -2,7 +2,7 @@
     "ScenarioParameters": {
         "attack_rate": 0.07,
         "infection_rate": 0.021,
-        "mapfile": "mapfiles/eng301.png",
+        "mapfile": "data/mapfiles/eng301.png",
         "x_grid_length": 10.6,
         "y_grid_length": 9.4,
         "t_step": 5,

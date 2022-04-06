@@ -1,7 +1,7 @@
 {
   "scenario": {
     "sim": {
-      "mapfile": "mapfiles/eng301.png",
+      "mapfile": "data/mapfiles/eng301.png",
       "xy_scale": 10.0,
       "t_step": 5,
       "max_iter": 2500,
