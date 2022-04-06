@@ -18,7 +18,7 @@ paths = [x for x in os.listdir() if x.startswith('outputs-')]
 final_stats = {}
 for path in tqdm(paths):
     name = path.replace('outputs-', '')
-    stat = StatsSimComplete('scenarios/eng301.json', path, flat=True)
+    stat = StatsSimComplete('data/scenarios/eng301.json', path, flat=True)
     final_stats[name] = stat.prob[-1]
 # %%
 df = pd.DataFrame(final_stats)
@@ -35,7 +35,7 @@ df['Average'] = df.mean(axis=1)
 
 _, ax = plt.subplots(figsize=[7, 7])
 sns.heatmap(df, ax=ax, cmap='RdYlGn_r', square=True, norm=LogNorm(), cbar_kws={'label': 'Excess risk of infection'})
-plt.savefig(f'exports/final-heatmap.png', dpi=600, bbox_inches='tight')
+plt.savefig(f'data/exports/final-heatmap.png', dpi=600, bbox_inches='tight')
 
 
 
@@ -45,7 +45,7 @@ paths = [x for x in os.listdir() if x.startswith('outputs-')]
 final_stats = {}
 for path in tqdm(paths):
     name = path.replace('outputs-', '')
-    stat = StatsSimComplete('scenarios/eng301.json', path, flat=True)
+    stat = StatsSimComplete('data/scenarios/eng301.json', path, flat=True)
     final_stats[name] = stat.prob.mean(axis=1)
 # %%
 df = pd.DataFrame(final_stats)
@@ -71,24 +71,24 @@ _ = ax.set(
     # ylim=[0, 0.1]
 )
 _ = ax.legend()
-plt.savefig(f'exports/stats-comparison-mask.png', dpi=600, bbox_inches='tight')
+plt.savefig(f'data/exports/stats-comparison-mask.png', dpi=600, bbox_inches='tight')
 
 
 
 # %%
-status = StatsSimStatus('scenarios/eng301.json', 'outputs-nomask-novax')
+status = StatsSimStatus('data/scenarios/eng301.json', 'outputs-nomask-novax')
 # %%
 status.export(fill=True, ylim=0.041)
 
 
 
 # %%
-virus = StatsSimVirus('scenarios/eng301.json', 'outputs-nomask-novax')
+virus = StatsSimVirus('data/scenarios/eng301.json', 'outputs-nomask-novax')
 virus.export()
 
 
 
 # %%
-virus = StatsSimComplete('scenarios/eng301.json', 'outputs-nomask-novax', flat=True)
+virus = StatsSimComplete('data/scenarios/eng301.json', 'outputs-nomask-novax', flat=True)
 virus.export()
 # %%

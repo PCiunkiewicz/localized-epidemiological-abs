@@ -12,9 +12,9 @@ from tools.snapshot import SnapshotSim
 from tools.stats import StatsSim, StatsSimComplete
 
 
-@arg('simfile', help='Path to the simulation output; example `outputs/simulation_0.hdf5`')
-@arg('mapfile', help='Path to the mapfile image; example `mapfiles/eng301.png`')
-def animation(simfile, mapfile, outfile='exports/animation.gif'):
+@arg('simfile', help='Path to the simulation output; example `data/outputs/simulation_0.hdf5`')
+@arg('mapfile', help='Path to the mapfile image; example `data/mapfiles/eng301.png`')
+def animation(simfile, mapfile, outfile='data/exports/animation.gif'):
     """ Export simulation animation as gif.
     """
     print(f'Exporting {simfile} as animation...')
@@ -23,9 +23,9 @@ def animation(simfile, mapfile, outfile='exports/animation.gif'):
     print(f'Time elapsed: {time.perf_counter() - start}')
 
 
-@arg('simfile', help='Path to the simulation output; example `outputs/simulation_0.hdf5`')
-@arg('mapfile', help='Path to the mapfile image; example `mapfiles/eng301.png`')
-def snapshot(simfile, mapfile, frame=0, outfile='exports/snapshot.png'):
+@arg('simfile', help='Path to the simulation output; example `data/outputs/simulation_0.hdf5`')
+@arg('mapfile', help='Path to the mapfile image; example `data/mapfiles/eng301.png`')
+def snapshot(simfile, mapfile, frame=0, outfile='data/exports/snapshot.png'):
     """ Export simulation frame as image.
     """
     print(f'Exporting {simfile} frame {frame}...')
@@ -34,9 +34,9 @@ def snapshot(simfile, mapfile, frame=0, outfile='exports/snapshot.png'):
     print(f'Time elapsed: {time.perf_counter() - start}')
 
 
-@arg('config', help='Path to the simulation config; example `scenarios/eng301.json`')
+@arg('config', help='Path to the simulation config; example `data/scenarios/eng301.json`')
 @arg('runs', help='Number of simulation runs in outputs directory')
-def stats(config, runs, outfile='exports/stats.png'):
+def stats(config, runs, outfile='data/exports/stats.png'):
     """ Export simulation stats as image.
     """
     print(f'Exporting {config} stats...')
@@ -45,8 +45,8 @@ def stats(config, runs, outfile='exports/stats.png'):
     print(f'Time elapsed: {time.perf_counter() - start}')
 
 
-@arg('config', help='Path to the simulation config; example `scenarios/eng301.json`')
-@arg('output_path', help='Simulation outputs path; example `outputs-nomask-novax`')
+@arg('config', help='Path to the simulation config; example `data/scenarios/eng301.json`')
+@arg('output_path', help='Simulation outputs path; example `data/outputs-nomask-novax`')
 def stats2(config, output_path, flat=0):
     """ Export simulation stats as image.
     """

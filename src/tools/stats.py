@@ -30,7 +30,7 @@ class StatsSim:
 
         res = []
         for i in range(runs):
-            results = f'outputs/simulation_{i}.hdf5'
+            results = f'data/outputs/simulation_{i}.hdf5'
             with h5py.File(results, 'r') as file:
                 try:
                     agents = file['agents'].__array__()
@@ -64,10 +64,10 @@ class StatsSimComplete:
     """
 
     def __init__(self, simfile, path, flat=False):
-        assert path.startswith('outputs-'), '`path` should start with "outputs-"'
+        assert path.startswith('data/outputs-'), '`path` should start with "outputs-"'
         files = os.listdir(path)
         files = [os.path.join(path, x) for x in files]
-        self.label = path.replace('outputs-', '')
+        self.label = path.replace('data/outputs-', '')
         self.min_size = os.path.getsize('trivial.hdf5')
 
         with open(simfile) as file:
@@ -114,7 +114,7 @@ class StatsSimComplete:
             # ylim=[0, 0.1]
         )
         _ = ax.legend()
-        plt.savefig(f'exports/stats-{self.label}.png', dpi=600, bbox_inches='tight')
+        plt.savefig(f'data/exports/stats-{self.label}.png', dpi=600, bbox_inches='tight')
 
 
 class StatsSimStatus:
@@ -124,10 +124,10 @@ class StatsSimStatus:
     pal = sns.color_palette()
 
     def __init__(self, simfile, path):
-        assert path.startswith('outputs-'), '`path` should start with "outputs-"'
+        assert path.startswith('data/outputs-'), '`path` should start with "outputs-"'
         files = os.listdir(path)
         files = [os.path.join(path, x) for x in files]
-        self.label = path.replace('outputs-', '')
+        self.label = path.replace('data/outputs-', '')
 
         with open(simfile) as file:
             param = AttrDict(json.load(file)['ScenarioParameters'])
@@ -166,7 +166,7 @@ class StatsSimStatus:
             ylim=[0, ylim]
         )
         _ = ax.legend()
-        plt.savefig('exports/sir-plot.png', dpi=600, bbox_inches='tight')
+        plt.savefig('data/exports/sir-plot.png', dpi=600, bbox_inches='tight')
 
 
 class StatsSimVirus:
@@ -174,10 +174,10 @@ class StatsSimVirus:
     """
 
     def __init__(self, simfile, path):
-        assert path.startswith('outputs-'), '`path` should start with "outputs-"'
+        assert path.startswith('data/outputs-'), '`path` should start with "outputs-"'
         files = os.listdir(path)
         files = [os.path.join(path, x) for x in files]
-        self.label = path.replace('outputs-', '')
+        self.label = path.replace('data/outputs-', '')
         self.min_size = os.path.getsize('trivial.hdf5')
 
         with open(simfile) as file:
@@ -210,4 +210,4 @@ class StatsSimVirus:
         ax.imshow(self.virus != 0, alpha=alpha, cmap='bwr_r')
 
         _ = ax.set(xticks=[], yticks=[])
-        plt.savefig('exports/virus-levels.png', dpi=600, bbox_inches='tight')
+        plt.savefig('data/exports/virus-levels.png', dpi=600, bbox_inches='tight')

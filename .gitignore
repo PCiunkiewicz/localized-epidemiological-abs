@@ -5,6 +5,6 @@ __pycache__/
 .mypy_cache/
 
 *.hdf5
-src/exports/*.pdf
-src/exports/*.mp4
+src/data/exports/*.pdf
+src/data/exports/*.mp4
 test.py

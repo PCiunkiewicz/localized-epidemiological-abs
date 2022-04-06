@@ -4,14 +4,14 @@ from launch import run_parallel
 
 # %%
 %%time
-config = 'scenarios/benchmark.json'
+config = 'data/scenarios/benchmark.json'
 run_parallel(config, runs=24, offset=0, base_port=5556, n_jobs=1)
 
 # %%
 %%time
-simfile = 'outputs/simulation_0.hdf5'
-mapfile = 'mapfiles/eng301.png'
-animation(simfile, mapfile, outfile='exports/animation.gif')
+simfile = 'data/outputs/simulation_0.hdf5'
+mapfile = 'data/mapfiles/eng301.png'
+animation(simfile, mapfile, outfile='data/exports/animation.gif')
 
 # %%
 """

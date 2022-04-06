@@ -43,15 +43,15 @@ src/
 
 ```bash
 python launch.py --help
-python launch.py run-sim scenarios/eng301.json
-python launch.py run-parallel scenarios/eng301.json
+python launch.py run-sim data/scenarios/eng301.json
+python launch.py run-parallel data/scenarios/eng301.json
 ```
 
 #### Export
 
 ```bash
 python export.py --help
-python export.py snapshot outputs/simulation_0.hdf5 mapfiles/eng301.png
-python export.py animation outputs/simulation_0.hdf5 mapfiles/eng301.png
-python export.py stats scenarios/eng301.json 10
+python export.py snapshot data/outputs/simulation_0.hdf5 data/mapfiles/eng301.png
+python export.py animation data/outputs/simulation_0.hdf5 data/mapfiles/eng301.png
+python export.py stats data/scenarios/eng301.json 10
 ```

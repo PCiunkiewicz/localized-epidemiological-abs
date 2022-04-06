@@ -1,4 +1,6 @@
 argh==0.26.2
+django==4.0
+djangorestframework==3.13.1
 h5py==3.6.0
 matplotlib==3.5.1
 numpy==1.22.3
