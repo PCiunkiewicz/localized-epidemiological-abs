@@ -8,3 +8,7 @@ __pycache__/
 src/data/exports/*.pdf
 src/data/exports/*.mp4
 test.py
+experiment.py
+
+src/data/postgres/
+src/data/pgadmin/
