@@ -40,13 +40,13 @@ class Model(ABC):
         """
         Instantiate agents from configuration file.
         """
-        for _ in range(config['random']['n_agents']):
+        for _ in range(config['random_agents']):
             spec = config['default'].copy()
             spec['info']['urgency'] = np.random.uniform(0.75, 0.99)
             agent = AgentClass(self.scenario, AgentSpec.from_dict(spec))
             self.population.append(agent)
 
-        for i in range(config['random']['n_infected']):
+        for i in range(config['random_infected']):
             self.population[i].infect()
 
         for custom_agent in config['custom']:

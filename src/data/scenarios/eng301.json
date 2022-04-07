@@ -137,10 +137,8 @@
         "mask_type": "N95"
       }
     },
-    "random": {
-      "n_agents": 0,
-      "n_infected": 0
-    },
+    "random_agents": 0,
+    "random_infected": 0,
     "custom": [
       {
         "info": {
