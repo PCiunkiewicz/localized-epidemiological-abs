@@ -21,7 +21,8 @@ from simulation.types.scenario import ScenarioSpec
 
 
 class Model(ABC):
-    """Base Model class for simulation.
+    """
+    Base Model class for simulation.
     """
 
     def __init__(self, config: str, AgentClass: type, ScenarioClass: type):
@@ -36,7 +37,8 @@ class Model(ABC):
         self.create_agents(cfg['agents'], AgentClass)
 
     def create_agents(self, config: dict, AgentClass: type):
-        """Instantiate agents from configuration file.
+        """
+        Instantiate agents from configuration file.
         """
         for _ in range(config['random']['n_agents']):
             spec = config['default'].copy()
@@ -55,7 +57,8 @@ class Model(ABC):
             self.population.append(agent)
 
     def get_agents(self) -> np.ndarray:
-        """Get position and status of all agents.
+        """
+        Get position and status of all agents.
         """
         ret = []
         for p in self.population:
@@ -68,14 +71,16 @@ class Model(ABC):
 
 
 class SIRModel(Model):
-    """Subclassed model for SIR simulation
+    """
+    Subclassed model for SIR simulation
     """
 
     def __init__(self, config):
         super().__init__(config, AgentClass=SIRAgent, ScenarioClass=SIRScenario)
 
     def model_step(self):
-        """Steps the simulation forward one iteration
+        """
+        Steps the simulation forward one iteration
         """
         for _ in range(self.sim.save_resolution):
             for p in self.population:
@@ -90,7 +95,8 @@ class SIRModel(Model):
 
 
 def simulate_sir_model(queue, event, config_file):
-    """Run SIR Model simulation.
+    """
+    Run SIR Model simulation.
 
     Simulations must be handled by functions due to
     the way that objects are passed between processes

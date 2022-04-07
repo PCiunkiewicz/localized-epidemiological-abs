@@ -12,7 +12,8 @@ import numpy as np
 
 
 def send_array(socket, A, flags=0, copy=True, track=False):
-    """Send a numpy array with metadata.
+    """
+    Send a numpy array with metadata.
     """
     metadata = {
         'dtype': str(A.dtype),
@@ -23,7 +24,8 @@ def send_array(socket, A, flags=0, copy=True, track=False):
 
 
 def recv_array(socket, flags=0, copy=True, track=False):
-    """Receive a numpy array.
+    """
+    Receive a numpy array.
     """
     metadata = socket.recv_json(flags=flags)
     msg = socket.recv(flags=flags, copy=copy, track=track)
@@ -33,7 +35,8 @@ def recv_array(socket, flags=0, copy=True, track=False):
 
 
 def publisher(queue, event, port):
-    """General publisher for zmq subscribers.
+    """
+    General publisher for zmq subscribers.
 
     Parameters
     ----------

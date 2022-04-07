@@ -14,7 +14,8 @@ from simulation.scenario import VIRUS_SCALE
 
 
 class SnapshotSim:
-    """Base Model class for rendering frame snapshots
+    """
+    Base Model class for rendering frame snapshots
     from completed simulations.
     """
 
@@ -27,7 +28,8 @@ class SnapshotSim:
             self.timesteps = file['timesteps'].__array__()
 
     def export(self, i, outfile, cmap='bwr_r', label=True):
-        """Export snapshot to output file.
+        """
+        Export snapshot to output file.
         """
         _, ax = plt.subplots(figsize=[10, 10])
         ax.imshow(self.img)

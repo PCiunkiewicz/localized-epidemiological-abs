@@ -15,7 +15,8 @@ from tools.stats import StatsSim, StatsSimComplete
 @arg('simfile', help='Path to the simulation output; example `data/outputs/simulation_0.hdf5`')
 @arg('mapfile', help='Path to the mapfile image; example `data/mapfiles/eng301.png`')
 def animation(simfile, mapfile, outfile='data/exports/animation.gif'):
-    """ Export simulation animation as gif.
+    """
+    Export simulation animation as gif.
     """
     print(f'Exporting {simfile} as animation...')
     start = time.perf_counter()
@@ -26,7 +27,8 @@ def animation(simfile, mapfile, outfile='data/exports/animation.gif'):
 @arg('simfile', help='Path to the simulation output; example `data/outputs/simulation_0.hdf5`')
 @arg('mapfile', help='Path to the mapfile image; example `data/mapfiles/eng301.png`')
 def snapshot(simfile, mapfile, frame=0, outfile='data/exports/snapshot.png'):
-    """ Export simulation frame as image.
+    """
+    Export simulation frame as image.
     """
     print(f'Exporting {simfile} frame {frame}...')
     start = time.perf_counter()
@@ -37,7 +39,8 @@ def snapshot(simfile, mapfile, frame=0, outfile='data/exports/snapshot.png'):
 @arg('config', help='Path to the simulation config; example `data/scenarios/eng301.json`')
 @arg('runs', help='Number of simulation runs in outputs directory')
 def stats(config, runs, outfile='data/exports/stats.png'):
-    """ Export simulation stats as image.
+    """
+    Export simulation stats as image.
     """
     print(f'Exporting {config} stats...')
     start = time.perf_counter()
@@ -48,7 +51,8 @@ def stats(config, runs, outfile='data/exports/stats.png'):
 @arg('config', help='Path to the simulation config; example `data/scenarios/eng301.json`')
 @arg('output_path', help='Simulation outputs path; example `data/outputs-nomask-novax`')
 def stats2(config, output_path, flat=0):
-    """ Export simulation stats as image.
+    """
+    Export simulation stats as image.
     """
     print(f'Exporting {config} stats for {output_path}...')
     start = time.perf_counter()

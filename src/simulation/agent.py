@@ -17,7 +17,8 @@ from simulation.scenario import Scenario
 
 
 class Agent(ABC): # TODO: Set up as abstract base class
-    """Base agent class for simulation.
+    """
+    Base agent class for simulation.
 
         Attributes
         ----------
@@ -74,7 +75,8 @@ class Agent(ABC): # TODO: Set up as abstract base class
         self.state.x, self.state.y = value
 
     def check_schedule(self):
-        """Checks whether a task is scheduled for the current time.
+        """
+        Checks whether a task is scheduled for the current time.
         """
         if self.is_('QUARANTINED') or self.is_('DECEASED'):
             return
@@ -86,7 +88,8 @@ class Agent(ABC): # TODO: Set up as abstract base class
             self.set_task(action)
 
     def set_task(self, zone=None, wait=0):
-        """Defines a new task / path for the Agent
+        """
+        Defines a new task / path for the Agent
         """
         if wait > 0:
             self.state.path = [self.pos] * wait
@@ -114,14 +117,16 @@ class Agent(ABC): # TODO: Set up as abstract base class
         self.state.path, _ = self.finder.find_path(start, end, self.grid)
 
     def in_(self, zone):
-        """Check whether agent is in `zone`.
+        """
+        Check whether agent is in `zone`.
         """
         if zone == 'WORK':
             zone = self.info.work_zone
         return self.scenario.sim.masks[zone][self.pos]
 
     def is_(self, status):
-        """Check whether agent status is `status`.
+        """
+        Check whether agent status is `status`.
         """
         return self.status is Status[status]
 
@@ -131,14 +136,16 @@ class Agent(ABC): # TODO: Set up as abstract base class
 
 
 class SIRAgent(Agent):
-    """Subclassed agent for SIR simulation.
+    """
+    Subclassed agent for SIR simulation.
     """
     def __init__(self, scenario: Scenario, spec: AgentSpec):
         super().__init__(scenario, spec)
         self.prevention_index = self._prevention_index()
 
     def recover(self):
-        """Simulates the possibility of a Agent recovering from infection
+        """
+        Simulates the possibility of a Agent recovering from infection
         """
         if self.contagious():
             if not self.dt.recovery:
@@ -169,7 +176,8 @@ class SIRAgent(Agent):
                         self.status = Status.RECOVERED
 
     def _prevention_index(self) -> float:
-        """Calculates Agent's protection from infection - vaccines and masks
+        """
+        Calculates Agent's protection from infection - vaccines and masks
         """
         vax_index = self.scenario.prevention.vax[self.info.vax_type][self.info.vax_doses]
         mask_index = self.scenario.prevention.mask[self.info.mask_type]
@@ -178,7 +186,8 @@ class SIRAgent(Agent):
         return prevention_index
 
     def infect(self):
-        """Set agent status to infected.
+        """
+        Set agent status to infected.
         """
         if self.random.rand() > self.prevention_index:
             self.status = Status.INFECTED
@@ -186,12 +195,14 @@ class SIRAgent(Agent):
             return
 
     def contagious(self):
-        """Check whether agent status is contagious.
+        """
+        Check whether agent status is contagious.
         """
         return self.is_('INFECTED') or self.is_('QUARANTINED')
 
     def droplet_expose(self):
-        """Simulates infection due to residue disease in the air
+        """
+        Simulates infection due to residue disease in the air
         """
         if self.is_('SUSCEPTIBLE'):
             atk = self.scenario.virus.attack_rate
@@ -201,14 +212,16 @@ class SIRAgent(Agent):
                 self.infect()
 
     def droplet_spread(self):
-        """Causes the area currently occupied by the Agent to be at risk of disease
+        """
+        Causes the area currently occupied by the Agent to be at risk of disease
         """
         if self.contagious():
             viral_load = VIRUS_SCALE * (1 - self.prevention_index)
             self.scenario.contaminate(*self.pos, viral_load)
 
     def move(self, trivial=False):
-        """Movement decision making for the Agent
+        """
+        Movement decision making for the Agent
         """
         self.recover()
         self.check_schedule()

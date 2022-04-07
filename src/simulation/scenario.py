@@ -18,7 +18,8 @@ VIRUS_SCALE = 2 ** 14
 
 
 class Scenario(ABC):
-    """Base Scenario class for simulation.
+    """
+    Base Scenario class for simulation.
     """
 
     def __init__(self, spec: ScenarioSpec):
@@ -28,7 +29,8 @@ class Scenario(ABC):
         self.dt = dt.datetime(2020, 9, 1, 7)
 
     def get_idx(self, zone: str) -> tuple:
-        """Get random (x,y) point from terrain mask.
+        """
+        Get random (x,y) point from terrain mask.
         """
         mask = self.sim.masks[zone]
         idx = np.argwhere(mask)
@@ -36,22 +38,26 @@ class Scenario(ABC):
         return tuple(idx[rand])
 
     def virus_level(self, x: int, y: int) -> float:
-        """Return virus value at coordinate `(x,y)`.
+        """
+        Return virus value at coordinate `(x,y)`.
         """
         return self.virus.matrix[x, y]
 
     def contaminate(self, x: int, y: int, concentration: float=VIRUS_SCALE):
-        """Set virus value at coordinate `(x,y)`.
+        """
+        Set virus value at coordinate `(x,y)`.
         """
         self.virus.matrix[x, y] += concentration
 
 
 class SIRScenario(Scenario):
-    """Subclassed scenario for SIR simulation.
+    """
+    Subclassed scenario for SIR simulation.
     """
 
     def ventilate(self, sigma: float=0.459, max_: float=VIRUS_SCALE):
-        """Simulates the ventilation of the map.
+        """
+        Simulates the ventilation of the map.
         """
         self.virus.matrix = gaussian_filter(self.virus.matrix, sigma=sigma)
         self.virus.matrix *= self.virus.decay_factor

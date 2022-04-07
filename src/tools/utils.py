@@ -16,7 +16,8 @@ STATUS_COLOR = {
 
 
 def reshape(data, status=None):
-    """Reshape data for convenient plotting.
+    """
+    Reshape data for convenient plotting.
     """
     if data.shape[1] == 3:
         data = data[data[:,2] == status][:,:2]
@@ -26,7 +27,8 @@ def reshape(data, status=None):
 
 
 def str_date(timestamp):
-    """Convert a datetime timestamp to string.
+    """
+    Convert a datetime timestamp to string.
     """
     date = dt.datetime.fromtimestamp(timestamp)
     return date.strftime('%y-%m-%d %H:%M:%S')

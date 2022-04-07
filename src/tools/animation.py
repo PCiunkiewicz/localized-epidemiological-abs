@@ -14,7 +14,8 @@ from simulation.scenario import VIRUS_SCALE
 
 
 class AnimateSim:
-    """Base Model class for animating completed simulations.
+    """
+    Base Model class for animating completed simulations.
     """
 
     def __init__(self, simfile, mapfile):
@@ -28,7 +29,8 @@ class AnimateSim:
         self.im, self.tx, self.plot_ref = self.draw_frame(0)
 
     def draw_frame(self, i, cmap='bwr_r'):
-        """Draw initial or arbitrary frame from simulation results.
+        """
+        Draw initial or arbitrary frame from simulation results.
         """
         _, ax = plt.subplots(figsize=[10, 10])
         ax.imshow(self.img)
@@ -45,7 +47,8 @@ class AnimateSim:
         return im, tx, plot_ref
 
     def animate(self, i):
-        """Progress the simulation animation.
+        """
+        Progress the simulation animation.
         Use with matplotlib `animation.FuncAnimation`.
         """
         self.im.set_data(self.virus[i] != 0)
@@ -56,7 +59,8 @@ class AnimateSim:
         return (self.im,) + tuple(self.plot_ref)
 
     def export(self, outfile):
-        """Export animation to output file.
+        """
+        Export animation to output file.
         """
         anim = animation.FuncAnimation(
             plt.gcf(), self.animate, frames=self.timesteps.size, interval=50, blit=True)

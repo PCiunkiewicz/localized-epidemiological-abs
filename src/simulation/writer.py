@@ -34,7 +34,8 @@ def create_dataset(f, data, name='default'):
 
 
 def save_agents(port, filename):
-    """Function for writing data to file.
+    """
+    Function for writing data to file.
 
     Parameters
     ----------

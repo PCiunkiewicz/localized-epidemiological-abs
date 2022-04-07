@@ -13,7 +13,8 @@ from dacite import from_dict
 
 
 class Status(Enum):
-    """ Infection status of the Agents.
+    """
+    Infection status of the Agents.
     """
     SUSCEPTIBLE = 1
     INFECTED = 2

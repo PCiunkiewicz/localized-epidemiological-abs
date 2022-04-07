@@ -21,7 +21,8 @@ sns.set('paper')
 
 
 class StatsSim:
-    """Base Model class for rendering individual simulation statistics.
+    """
+    Base Model class for rendering individual simulation statistics.
     """
 
     def __init__(self, simfile, runs):
@@ -43,7 +44,8 @@ class StatsSim:
         self.hours = np.arange(param.max_iter) / 3600 * param.t_step * param.save_resolution
 
     def export(self, outfile):
-        """Export statistics visualization to output file.
+        """
+        Export statistics visualization to output file.
         """
         _, ax = plt.subplots(figsize=[5, 3.5])
 
@@ -60,7 +62,8 @@ class StatsSim:
 
 
 class StatsSimComplete:
-    """Base Model class for rendering aggregate simulation statistics.
+    """
+    Base Model class for rendering aggregate simulation statistics.
     """
 
     def __init__(self, simfile, path, flat=False):
@@ -95,7 +98,8 @@ class StatsSimComplete:
             return np.zeros(self.shape)
 
     def export(self):
-        """Export statistics visualization to output file.
+        """
+        Export statistics visualization to output file.
         """
         _, ax = plt.subplots(figsize=[5, 3.5])
 
@@ -118,7 +122,8 @@ class StatsSimComplete:
 
 
 class StatsSimStatus:
-    """Base Model class for rendering status simulation statistics.
+    """
+    Base Model class for rendering status simulation statistics.
     """
 
     pal = sns.color_palette()
@@ -147,7 +152,8 @@ class StatsSimStatus:
             return [(status == s.value).mean(axis=1) for s in Status]
 
     def export(self, fill=True, ylim=None):
-        """Export statistics visualization to output file.
+        """
+        Export statistics visualization to output file.
         """
         _, ax = plt.subplots(figsize=[5, 3.5])
 
@@ -170,7 +176,8 @@ class StatsSimStatus:
 
 
 class StatsSimVirus:
-    """Base Model class for rendering virus simulation statistics.
+    """
+    Base Model class for rendering virus simulation statistics.
     """
 
     def __init__(self, simfile, path):
@@ -201,7 +208,8 @@ class StatsSimVirus:
             return np.zeros(self.shape)
 
     def export(self):
-        """Export statistics visualization to output file.
+        """
+        Export statistics visualization to output file.
         """
         _, ax = plt.subplots(figsize=[10, 10])
 

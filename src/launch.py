@@ -22,7 +22,8 @@ PORT_RANGE = 100
 
 
 class SimController(object):
-    """Controller object adapted from code required for frontend
+    """
+    Controller object adapted from code required for frontend
     execution. Can be converted to a set of functions or moved to
     a dedicated Python module or into the `model` module later.
     """
