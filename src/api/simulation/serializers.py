@@ -1,6 +1,7 @@
 """
 MLFramework API Model Serializers
 """
+import os
 import re
 
 from rest_framework import serializers
@@ -29,26 +30,6 @@ class Nested(serializers.PrimaryKeyRelatedField):
         return super().to_representation(value)
 
 
-# TODO: figure out many-to-many serialization for Terrain
-class SimulationSerializer(serializers.ModelSerializer):
-    """
-    Simulation Model Serializer
-    """
-    class Meta:
-        model = Simulation
-        fields = '__all__'
-
-    def validate_mapfile(self, data):
-        """
-        Validate `mapfile` field on Simulation
-        """
-        filetypes = ('.png', '.gif')
-        if not data.endswith(filetypes):
-            raise ValidationError({'mapfile': f'must have filetype in {filetypes}'})
-
-        return data
-
-
 class TerrainSerializer(serializers.ModelSerializer):
     """
     Terrain Model Serializer
@@ -65,6 +46,29 @@ class TerrainSerializer(serializers.ModelSerializer):
             if not re.search(r'^#(?:[0-9a-fA-F]{6})$', attrs[field]):
                 raise ValidationError({field: f'invalid hex color: {attrs[field]}'})
         return super().validate(attrs)
+
+
+class SimulationSerializer(serializers.ModelSerializer):
+    """
+    Simulation Model Serializer
+    """
+    terrain = TerrainSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = Simulation
+        fields = '__all__'
+
+    def validate_mapfile(self, data):
+        """
+        Validate `mapfile` field on Simulation
+        """
+        filetypes = ('.png', '.gif')
+        if not data.endswith(filetypes):
+            raise ValidationError({'mapfile': f'must have filetype in {filetypes}'})
+        if not os.path.isfile(data):
+            raise ValidationError({'mapfile': f'file `{data}` does not exist'})
+
+        return data
 
 
 class VirusSerializer(serializers.ModelSerializer):
@@ -104,6 +108,9 @@ class RunSerializer(serializers.ModelSerializer):
     """
     Run Serializer
     """
+    scenario = Nested(queryset=Scenario.objects.all(), serializer=ScenarioSerializer)
+    agents = Nested(queryset=AgentConfig.objects.all(), serializer=AgentConfigSerializer)
+
     class Meta:
         model = Run
         fields = '__all__'

@@ -3,7 +3,21 @@ Localized Epidemiological ABS API Models
 """
 
 from django.db import models
-from django.core.validators import validate_slug, MinLengthValidator, MinValueValidator
+from django.core.validators import validate_slug, MinValueValidator
+
+# TODO: all models - write appropriate on-create and on-delete logic
+
+class Terrain(models.Model):
+    """
+    Terrain Model
+    """
+    name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
+    value = models.CharField(max_length=7)
+    color = models.CharField(max_length=7)
+    material = models.CharField(max_length=250, null=True)
+    walkable = models.BooleanField(default=True)
+    restricted = models.BooleanField(default=True)
+    access_level = models.IntegerField(default=0)
 
 
 class Simulation(models.Model):
@@ -17,20 +31,7 @@ class Simulation(models.Model):
     max_iter = models.IntegerField(default=100, validators=[MinValueValidator(1)])
     save_resolution = models.IntegerField(default=60, validators=[MinValueValidator(1)])
     save_verbose = models.BooleanField(default=False)
-
-
-class Terrain(models.Model):
-    """
-    Terrain Model
-    """
-    name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
-    value = models.CharField(max_length=7, validators=MinLengthValidator(7))
-    color = models.CharField(max_length=7, validators=MinLengthValidator(7))
-    material = models.CharField(max_length=250, null=True)
-    walkable = models.BooleanField(default=True)
-    restricted = models.BooleanField(default=True)
-    access_level = models.IntegerField(default=0)
-    simulations = models.ManyToManyField(Simulation)
+    terrain = models.ManyToManyField(Terrain, blank=True)
 
 
 class Virus(models.Model):
@@ -57,7 +58,7 @@ class AgentConfig(models.Model):
     """
     Agent Configuration Model
     """
-    default = models.JSONField(default=dict)
+    default = models.JSONField(default=dict) # TODO: come back and finish this json validation, maybe use dataclasses from sim
     random_agents = models.PositiveIntegerField()
     random_infected = models.PositiveIntegerField()
     custom = models.JSONField(default=list)
@@ -68,7 +69,8 @@ class Run(models.Model):
     Run Model
     """
     name = models.CharField(max_length=250, validators=[validate_slug])
-    save_dir = models.CharField(max_length=250, null=True) # TODO: create on save as `$id-$name`
-    scenario = models.ForeignKey(Scenario)
+    save_dir = models.CharField(max_length=250, null=True)
+    scenario = models.ForeignKey(Scenario, on_delete=models.RESTRICT)
+    agents = models.ForeignKey(AgentConfig, on_delete=models.RESTRICT)
     runs = models.IntegerField(default=1, validators=[MinValueValidator(1)])
-    parallel = models.BooleanField(default=False)
+    parallel = models.BooleanField(default=False) # TODO: consider replacing with n_jobs or adding
