@@ -24,6 +24,7 @@ class VirusInfo:
 
 @dataclass
 class Terrain:
+    name: str
     value: str
     color: str
     material: Optional[str]
@@ -38,7 +39,7 @@ class SimSetup:
     mapfile: str
     shape: Optional[tuple[int]]
     xy_scale: float
-    terrain: dict[str, Terrain]
+    terrain: list[Terrain]
     t_step: int = 5
     save_resolution: int = 60
     save_verbose: bool = False
@@ -51,9 +52,9 @@ class SimSetup:
 
         self.masks['VALID'] = np.ones(self.shape, dtype=bool)
 
-        for name, terrain in self.terrain.items():
+        for terrain in self.terrain:
             mask = mask_color(img, terrain.value)
-            self.masks[name] = mask
+            self.masks[terrain.name] = mask
 
             if terrain.restricted or not terrain.walkable:
                 self.masks['VALID'] &= ~mask

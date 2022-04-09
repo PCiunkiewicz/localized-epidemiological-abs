@@ -7,98 +7,116 @@
       "max_iter": 2500,
       "save_resolution": 60,
       "save_verbose": false,
-      "terrain": {
-        "WALL": {
+      "terrain": [
+        {
+          "name": "WALL",
           "value": "#000000",
           "color": "#000000",
           "walkable": false
         },
-        "AGENT0": {
+        {
+          "name": "AGENT0",
           "value": "#0000ff",
           "color": "#0000ff",
           "walkable": true
         },
-        "PUBLIC": {
+        {
+          "name": "PUBLIC",
           "value": "#00ff00",
           "color": "#00ff00",
           "walkable": true
         },
-        "PRINTER": {
+        {
+          "name": "PRINTER",
           "value": "#01ff00",
           "color": "#01ff00",
           "walkable": true
         },
-        "MICROWAVE": {
+        {
+          "name": "MICROWAVE",
           "value": "#02ff00",
           "color": "#02ff00",
           "walkable": true
         },
-        "TEA": {
+        {
+          "name": "TEA",
           "value": "#03ff00",
           "color": "#03ff00",
           "walkable": true
         },
-        "AGENT1": {
+        {
+          "name": "AGENT1",
           "value": "#0100ff",
           "color": "#0100ff",
           "walkable": true
         },
-        "AGENT2": {
+        {
+          "name": "AGENT2",
           "value": "#0200ff",
           "color": "#0200ff",
           "walkable": true
         },
-        "AGENT3": {
+        {
+          "name": "AGENT3",
           "value": "#0300ff",
           "color": "#0300ff",
           "walkable": true
         },
-        "AGENT4": {
+        {
+          "name": "AGENT4",
           "value": "#0400ff",
           "color": "#0400ff",
           "walkable": true
         },
-        "AGENT5": {
+        {
+          "name": "AGENT5",
           "value": "#0500ff",
           "color": "#0500ff",
           "walkable": true
         },
-        "AGENT6": {
+        {
+          "name": "AGENT6",
           "value": "#0600ff",
           "color": "#0600ff",
           "walkable": true
         },
-        "AGENT7": {
+        {
+          "name": "AGENT7",
           "value": "#0700ff",
           "color": "#0700ff",
           "walkable": true
         },
-        "AGENT8": {
+        {
+          "name": "AGENT8",
           "value": "#0800ff",
           "color": "#0800ff",
           "walkable": true
         },
-        "DESK": {
+        {
+          "name": "DESK",
           "value": "#7f7f7f",
           "color": "#7f7f7f",
           "walkable": false
         },
-        "WINDOW": {
+        {
+          "name": "WINDOW",
           "value": "#c3c3c3",
           "color": "#c3c3c3",
           "walkable": false
         },
-        "EXIT": {
+        {
+          "name": "EXIT",
           "value": "#ffff00",
           "color": "#ffff00",
           "walkable": true
         },
-        "OPEN": {
+        {
+          "name": "OPEN",
           "value": "#ffffff",
           "color": "#ffffff",
           "walkable": true
         }
-      }
+      ]
     },
     "virus": {
       "attack_rate": 0.07,
