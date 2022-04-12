@@ -1,0 +1,365 @@
+{
+  "id": 1,
+  "scenario": {
+    "id": 1,
+    "sim": {
+      "id": 1,
+      "terrain": [
+        {
+          "id": 1,
+          "name": "WALL",
+          "value": "#000000",
+          "color": "#000000",
+          "material": null,
+          "walkable": false,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 2,
+          "name": "AGENT0",
+          "value": "#0000ff",
+          "color": "#0000ff",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 3,
+          "name": "PUBLIC",
+          "value": "#00ff00",
+          "color": "#00ff00",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 4,
+          "name": "PRINTER",
+          "value": "#01ff00",
+          "color": "#01ff00",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 5,
+          "name": "MICROWAVE",
+          "value": "#02ff00",
+          "color": "#02ff00",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 6,
+          "name": "TEA",
+          "value": "#03ff00",
+          "color": "#03ff00",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 7,
+          "name": "AGENT1",
+          "value": "#0100ff",
+          "color": "#0100ff",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 8,
+          "name": "AGENT2",
+          "value": "#0200ff",
+          "color": "#0200ff",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 9,
+          "name": "AGENT3",
+          "value": "#0300ff",
+          "color": "#0300ff",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 10,
+          "name": "AGENT4",
+          "value": "#0400ff",
+          "color": "#0400ff",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 11,
+          "name": "AGENT5",
+          "value": "#0500ff",
+          "color": "#0500ff",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 12,
+          "name": "AGENT6",
+          "value": "#0600ff",
+          "color": "#0600ff",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 13,
+          "name": "AGENT7",
+          "value": "#0700ff",
+          "color": "#0700ff",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 14,
+          "name": "AGENT8",
+          "value": "#0800ff",
+          "color": "#0800ff",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 15,
+          "name": "DESK",
+          "value": "#7f7f7f",
+          "color": "#7f7f7f",
+          "material": null,
+          "walkable": false,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 16,
+          "name": "WINDOW",
+          "value": "#c3c3c3",
+          "color": "#c3c3c3",
+          "material": null,
+          "walkable": false,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 17,
+          "name": "EXIT",
+          "value": "#ffff00",
+          "color": "#ffff00",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        },
+        {
+          "id": 18,
+          "name": "OPEN",
+          "value": "#ffffff",
+          "color": "#ffffff",
+          "material": null,
+          "walkable": true,
+          "interactive": false,
+          "restricted": false,
+          "access_level": 0
+        }
+      ],
+      "name": "eng301-example",
+      "mapfile": "data/mapfiles/eng301.png",
+      "xy_scale": 10.0,
+      "t_step": 1,
+      "max_iter": 100,
+      "save_resolution": 60,
+      "save_verbose": false
+    },
+    "virus": {
+      "id": 1,
+      "name": "COVID-19",
+      "attack_rate": 0.07,
+      "infection_rate": 0.021,
+      "fatality_rate": 0.01
+    },
+    "name": "COVID-19-eng301",
+    "prevention": {
+      "vax": {
+        "MRNA": [
+          0.0,
+          0.31,
+          0.88
+        ],
+        "ASTRA": [
+          0.0,
+          0.31,
+          0.67
+        ]
+      },
+      "mask": {
+        "N95": 0.85,
+        "NONE": 0.0,
+        "CLOTH": 0.3,
+        "SURGICAL": 0.5
+      }
+    }
+  },
+  "agents": {
+    "id": 1,
+    "default": {
+      "info": {
+        "vax_type": "MRNA",
+        "mask_type": "N95",
+        "vax_doses": 2
+      },
+      "state": {
+        "x": 0,
+        "y": 0,
+        "status": "UNKNOWN"
+      }
+    },
+    "random_agents": 0,
+    "random_infected": 0,
+    "custom": [
+      {
+        "info": {
+          "schedule": {
+            "11:00": "WORK",
+            "17:00": "EXIT"
+          },
+          "work_zone": "AGENT1",
+          "start_zone": "EXIT"
+        }
+      },
+      {
+        "info": {
+          "schedule": {
+            "10:30": "WORK",
+            "10:40": "MICROWAVE",
+            "17:00": "EXIT"
+          },
+          "work_zone": "AGENT2",
+          "start_zone": "EXIT"
+        }
+      },
+      {
+        "info": {
+          "schedule": {
+            "08:30": "WORK",
+            "08:40": "MICROWAVE",
+            "16:00": "EXIT"
+          },
+          "work_zone": "AGENT3",
+          "start_zone": "EXIT"
+        }
+      },
+      {
+        "info": {
+          "schedule": {
+            "07:30": "WORK",
+            "16:00": "EXIT"
+          },
+          "work_zone": "AGENT4",
+          "start_zone": "EXIT"
+        }
+      },
+      {
+        "info": {
+          "schedule": {
+            "09:00": "WORK",
+            "09:20": "TEA",
+            "12:00": "TEA",
+            "13:00": "MICROWAVE",
+            "17:30": "EXIT"
+          },
+          "work_zone": "AGENT5",
+          "start_zone": "EXIT"
+        }
+      },
+      {
+        "info": {
+          "schedule": {
+            "07:40": "WORK",
+            "07:45": "TEA",
+            "09:10": "TEA",
+            "11:00": "EXIT",
+            "11:20": "WORK",
+            "11:30": "TEA",
+            "17:00": "EXIT"
+          },
+          "work_zone": "AGENT6",
+          "start_zone": "EXIT"
+        }
+      },
+      {
+        "info": {
+          "schedule": {
+            "10:00": "WORK",
+            "15:30": "MICROWAVE",
+            "16:00": "TEA",
+            "18:00": "EXIT"
+          },
+          "work_zone": "AGENT7",
+          "start_zone": "EXIT"
+        }
+      },
+      {
+        "info": {
+          "schedule": {
+            "09:00": "WORK",
+            "12:00": "EXIT",
+            "14:00": "WORK",
+            "15:40": "TEA",
+            "16:30": "EXIT"
+          },
+          "work_zone": "AGENT8",
+          "start_zone": "EXIT"
+        }
+      }
+    ]
+  },
+  "name": "eng301-example",
+  "status": "CREATED",
+  "save_dir": "/code/data/outputs/001-eng301-example",
+  "config": "/code/data/run_configs/001-eng301-example.json",
+  "logfile": "/code/data/logs/001-eng301-example.log",
+  "runs": 20,
+  "parallel": true
+}
