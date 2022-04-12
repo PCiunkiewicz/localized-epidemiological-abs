@@ -19,6 +19,7 @@ from simulation.types import Status
 
 sns.set('paper')
 
+# TODO: revisit and refactor all classes
 
 class StatsSim:
     """

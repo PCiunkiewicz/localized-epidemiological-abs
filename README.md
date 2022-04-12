@@ -22,7 +22,7 @@ src/
 │   └── scenario maps as RGB png files
 ├── outputs/
 │   └── simulation results as hdf5 files
-├── scenarios/
+├── run_configs/
 │   └── scenario configurations as json files
 ├── simulation/
 │   ├── agent.py
@@ -43,8 +43,8 @@ src/
 
 ```bash
 python launch.py --help
-python launch.py run-sim data/scenarios/eng301.json
-python launch.py run-parallel data/scenarios/eng301.json
+python launch.py run-sim data/run_configs/eng301.json
+python launch.py run-parallel data/run_configs/eng301.json
 ```
 
 #### Export
@@ -53,5 +53,5 @@ python launch.py run-parallel data/scenarios/eng301.json
 python export.py --help
 python export.py snapshot data/outputs/simulation_0.hdf5 data/mapfiles/eng301.png
 python export.py animation data/outputs/simulation_0.hdf5 data/mapfiles/eng301.png
-python export.py stats data/scenarios/eng301.json 10
+python export.py stats data/run_configs/eng301.json 10
 ```

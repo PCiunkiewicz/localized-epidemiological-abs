@@ -15,7 +15,9 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-OUTPUT_DIR = BASE_DIR.parent / 'data' / 'outputs'
+RUN_OUTPUT_DIR = BASE_DIR / 'data' / 'outputs' # TODO: create empty directories if necessary
+RUN_CONFIG_DIR = BASE_DIR / 'data' / 'run_configs'
+LOG_DIR = BASE_DIR / 'data' / 'logs'
 
 
 # Quick-start development settings - unsuitable for production

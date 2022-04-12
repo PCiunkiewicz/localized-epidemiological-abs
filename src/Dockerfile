@@ -9,5 +9,3 @@ COPY requirements.txt /code/
 
 RUN apt-get update && apt-get install -y libhdf5-dev
 RUN pip install -r requirements.txt
-
-COPY . /code/

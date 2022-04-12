@@ -60,7 +60,7 @@ class SimController(object):
         self.publisher_process.join()
 
 
-@arg('config', help='Path to the config file; example `data/scenarios/eng301.json`')
+@arg('config', help='Path to the config file; example `data/run_configs/eng301.json`')
 def run_sim(config, run_id=0, port=5556, save_dir='data/outputs'):
     Path(save_dir).mkdir(exist_ok=True)
     start = time.perf_counter()
@@ -85,14 +85,14 @@ def _run_args(args):
     run_sim(*args)
 
 
-@arg('config', help='Path to the config file; example `data/scenarios/eng301.json`')
-def run_parallel(config, runs=4, offset=0, base_port=5556, n_jobs=None):
+@arg('config', help='Path to the config file; example `data/run_configs/eng301.json`')
+def run_parallel(config, runs=4, offset=0, base_port=5556, save_dir='data/outputs', n_jobs=None):
     if not n_jobs:
         n_jobs = max(cpu_count() - 1, 1)
 
     run_ids = range(offset, runs + offset)
     ports = np.arange(runs) % PORT_RANGE + base_port
-    args = [(config, run_id, port) for run_id, port in zip(run_ids, ports)]
+    args = [(config, run_id, port, save_dir) for run_id, port in zip(run_ids, ports)]
 
     with Pool(max_workers=n_jobs) as pool:
         pool.map(_run_args, args)
@@ -104,6 +104,6 @@ parser.add_commands([run_sim, run_parallel])
 
 if __name__ == '__main__':
     # Uncomment one of these lines if you don't want to use CLI args
-    # run_sim('data/scenarios/eng301.json')
-    # run_sim_parallel('data/scenarios/eng301.json', 20)
+    # run_sim('data/run_configs/eng301.json')
+    # run_sim_parallel('data/run_configs/eng301.json', 20)
     parser.dispatch()

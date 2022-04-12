@@ -16,7 +16,8 @@ class Terrain(models.Model):
     color = models.CharField(max_length=7)
     material = models.CharField(max_length=250, null=True)
     walkable = models.BooleanField(default=True)
-    restricted = models.BooleanField(default=True)
+    interactive = models.BooleanField(default=False)
+    restricted = models.BooleanField(default=False)
     access_level = models.IntegerField(default=0)
 
 
@@ -68,9 +69,22 @@ class Run(models.Model):
     """
     Run Model
     """
+    class Status(models.TextChoices):
+        """
+        Run `status` field valid options
+        """
+        CREATED = 'CREATED'
+        RUNNING = 'RUNNING'
+        SUCCESS = 'SUCCESS'
+        FAILURE = 'FAILURE'
+
     name = models.CharField(max_length=250, validators=[validate_slug])
+    status = models.CharField(max_length=7, choices=Status.choices, default=Status.CREATED)
     save_dir = models.CharField(max_length=250, null=True)
+    config = models.CharField(max_length=250, null=True)
+    logfile = models.CharField(max_length=250, null=True)
     scenario = models.ForeignKey(Scenario, on_delete=models.RESTRICT)
     agents = models.ForeignKey(AgentConfig, on_delete=models.RESTRICT)
     runs = models.IntegerField(default=1, validators=[MinValueValidator(1)])
     parallel = models.BooleanField(default=False) # TODO: consider replacing with n_jobs or adding
+    # TODO: add status and special logic for polling completeness

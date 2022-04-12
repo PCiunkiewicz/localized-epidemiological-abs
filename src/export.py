@@ -36,7 +36,7 @@ def snapshot(simfile, mapfile, frame=0, outfile='data/exports/snapshot.png'):
     print(f'Time elapsed: {time.perf_counter() - start}')
 
 
-@arg('config', help='Path to the simulation config; example `data/scenarios/eng301.json`')
+@arg('config', help='Path to the simulation config; example `data/run_configs/eng301.json`')
 @arg('runs', help='Number of simulation runs in outputs directory')
 def stats(config, runs, outfile='data/exports/stats.png'):
     """
@@ -48,7 +48,7 @@ def stats(config, runs, outfile='data/exports/stats.png'):
     print(f'Time elapsed: {time.perf_counter() - start}')
 
 
-@arg('config', help='Path to the simulation config; example `data/scenarios/eng301.json`')
+@arg('config', help='Path to the simulation config; example `data/run_configs/eng301.json`')
 @arg('output_path', help='Simulation outputs path; example `data/outputs-nomask-novax`')
 def stats2(config, output_path, flat=0):
     """

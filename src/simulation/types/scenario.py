@@ -11,7 +11,7 @@ import numpy as np
 from dacite import from_dict
 from matplotlib import image
 
-from simulation.utils import AttrDict, mask_color
+from simulation.utils import mask_color
 
 
 @dataclass

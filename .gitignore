@@ -10,5 +10,6 @@ src/data/exports/*.mp4
 test.py
 experiment.py
 
+src/data/logs/
 src/data/postgres/
 src/data/pgadmin/
