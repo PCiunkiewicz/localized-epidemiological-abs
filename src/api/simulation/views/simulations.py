@@ -17,6 +17,8 @@ class SimulationViewSet(viewsets.ModelViewSet):
     queryset = Simulation.objects.all()
     serializer_class = SimulationSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
+    authentication_classes: list = [] #disables authentication
+    permission_classes: list = [] #disables permission
 
     def create(self, request):
         serializer = SimulationSerializer(data=request.data)

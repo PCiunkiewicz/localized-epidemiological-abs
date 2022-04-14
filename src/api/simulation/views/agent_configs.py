@@ -15,3 +15,5 @@ class AgentConfigViewSet(viewsets.ModelViewSet):
     queryset = AgentConfig.objects.all()
     serializer_class = AgentConfigSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
+    authentication_classes: list = [] #disables authentication
+    permission_classes: list = [] #disables permission

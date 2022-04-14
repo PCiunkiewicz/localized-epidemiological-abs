@@ -15,3 +15,5 @@ class ScenarioViewSet(viewsets.ModelViewSet):
     queryset = Scenario.objects.all()
     serializer_class = ScenarioSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
+    authentication_classes: list = [] #disables authentication
+    permission_classes: list = [] #disables permission

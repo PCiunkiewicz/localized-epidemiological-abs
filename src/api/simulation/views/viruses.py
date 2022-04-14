@@ -15,3 +15,5 @@ class VirusViewSet(viewsets.ModelViewSet):
     queryset = Virus.objects.all()
     serializer_class = VirusSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
+    authentication_classes: list = [] #disables authentication
+    permission_classes: list = [] #disables permission

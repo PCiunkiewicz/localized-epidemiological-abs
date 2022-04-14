@@ -15,3 +15,5 @@ class TerrainViewSet(viewsets.ModelViewSet):
     queryset = Terrain.objects.all()
     serializer_class = TerrainSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
+    authentication_classes: list = [] #disables authentication
+    permission_classes: list = [] #disables permission
