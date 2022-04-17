@@ -1,15 +1,39 @@
+# General
 __pycache__/
 .vscode/
 .DS_Store
 .ipynb_checkpoints/
 .mypy_cache/
 
+# Backend
 *.hdf5
 backend/data/exports/*.pdf
 backend/data/exports/*.mp4
 test.py
 experiment.py
-
 backend/data/logs/
 backend/data/postgres/
 backend/data/pgadmin/
+
+# Frontend
+# dependencies
+frontend/node_modules
+frontend/.pnp
+frontend/.pnp.js
+
+# testing
+frontend/coverage
+
+# production
+frontend/build
+
+# misc
+frontend/.DS_Store
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
