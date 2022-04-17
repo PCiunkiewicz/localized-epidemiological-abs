@@ -37,9 +37,8 @@ ALLOWED_HOSTS: list[str] = []
 INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
-    # 'django.contrib.sessions',
-    # 'django.contrib.messages',
-    # 'django.contrib.staticfiles',
+    # 'django.contrib.sessions', # uncomment to restore sessions
+    # 'django.contrib.messages', # uncomment to restore messages
     'rest_framework',
     'api',
     'api.simulation',
@@ -47,11 +46,11 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # 'django.contrib.sessions.middleware.SessionMiddleware',
+    # 'django.contrib.sessions.middleware.SessionMiddleware', # uncomment to restore sessions
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    # 'django.contrib.auth.middleware.AuthenticationMiddleware',
-    # 'django.contrib.messages.middleware.MessageMiddleware',
+    # 'django.contrib.auth.middleware.AuthenticationMiddleware', # uncomment to restore auth
+    # 'django.contrib.messages.middleware.MessageMiddleware', # uncomment to restore messages
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -83,7 +82,7 @@ DATABASES = {
 }
 
 
-# Password validation
+# Password validation (uncomment AUTH_PASSWORD_VALIDATORS to restore)
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
 
 # AUTH_PASSWORD_VALIDATORS = [
