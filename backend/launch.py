@@ -13,7 +13,7 @@ import numpy as np
 from argh import arg, ArghParser
 from pathlib import Path
 
-from simulation.model import simulate_sir_model
+from simulation.model import simulate_model, SIRModel
 from simulation.publisher import publisher
 from simulation.writer import save_agents
 
@@ -30,9 +30,6 @@ class SimController(object):
 
     def __init__(self, config, port=5556, outfile=None):
         super().__init__()
-        self.config = config
-        self.port = port
-
         self.pub_queue = Queue()
         self.stop_publisher = Event()
         self.stop_simulation = Event()
@@ -42,8 +39,8 @@ class SimController(object):
             args=(self.pub_queue, self.stop_publisher, port)
         )
         self.simulation_process = Process(
-            target=simulate_sir_model,
-            args=(self.pub_queue, self.stop_simulation, config),
+            target=simulate_model,
+            args=(SIRModel, config, self.pub_queue, self.stop_simulation),
         )
         self.writer_process = Process(target=save_agents, args=(port, outfile))
 

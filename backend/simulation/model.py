@@ -69,6 +69,10 @@ class Model(ABC):
     def model_step(self):
         pass
 
+    @abstractmethod
+    def simulate(self):
+        pass
+
 
 class SIRModel(Model):
     """
@@ -93,70 +97,62 @@ class SIRModel(Model):
             self.scenario.dt += dt.timedelta(hours=12)
             self.scenario.virus.matrix[:] = 0
 
+    def simulate(self, queue, event):
+        n_iter = 0
+        model_time = 0
+        start_time = time.perf_counter()
 
-def simulate_sir_model(queue, event, config_file):
+        if all([p.is_('SUSCEPTIBLE') for p in self.population]):
+            self.trivial = True
+            print('TRIVIAL')
+
+        while n_iter < self.sim.max_iter:
+            if queue.empty():
+                n_iter += 1
+                start = time.perf_counter()
+                self.model_step()
+                model_time += time.perf_counter() - start
+                queue.put({
+                    'topic': 'timesteps',
+                    'data': self.scenario.dt.timestamp()})
+                queue.put({'topic': 'agents', 'data': self.get_agents()})
+                if not self.trivial and self.sim.save_verbose:
+                    queue.put({'topic': 'virus', 'data': self.scenario.virus.matrix.copy()})
+
+                sim_dt = self.scenario.dt.strftime('%y-%m-%d %H:%M:%S')
+                print(f'Model Step: {n_iter}    Runtime: {model_time:.2f}s    SimDT: {sim_dt}', end='\r')
+
+        event.set()
+        if self.trivial and self.sim.save_verbose:
+            queue.put({'topic': 'trivial', 'data': {
+                'virus_shape': (self.sim.max_iter, *self.sim.shape)
+            }})
+        else:
+            queue.put({'topic': '', 'data': 'stop'})
+
+        print('\n' + '=' * 50)
+        print('Performance Statistics')
+        print('-' * 50)
+        print(f'Total iterations: {n_iter}')
+        print(f'Total simulation steps: {n_iter * self.sim.save_resolution}')
+        print(f'Total simulation time: {model_time}')
+
+        print('-' * 50)
+        try:
+            print(f'Avg iter time: {(time.perf_counter()-start_time) / n_iter}')
+            print(f'Avg model cycle time: {model_time / n_iter}')
+            print(f'Avg simulation step time: {model_time / n_iter / self.sim.save_resolution}')
+        except ZeroDivisionError:
+            pass
+        print('=' * 50)
+
+
+def simulate_model(ModelClass: type, config: str, queue, event):
     """
     Run SIR Model simulation.
 
-    Simulations must be handled by functions due to
+    Simulations are best handled by functions due to
     the way that objects are passed between processes
-    when using the multiprocessing library.
-
-    Parameters
-    ----------
-    queue : multiprocessing.Queue
-        Public queue for sending data to zmq publisher.
-    event : multiprocessing.Event
-        Stop event for terminating simulation.
-    config_file : str
-        Path to scenario configuration (json).
+    when using multiprocessing.
     """
-    model = SIRModel(config_file)
-
-    n_iter = 0
-    model_time = 0
-    start_time = time.perf_counter()
-
-    if all([p.is_('SUSCEPTIBLE') for p in model.population]):
-        model.trivial = True
-        print('TRIVIAL')
-
-    while n_iter < model.sim.max_iter:
-        if queue.empty():
-            n_iter += 1
-            start = time.perf_counter()
-            model.model_step()
-            model_time += time.perf_counter() - start
-            queue.put({
-                'topic': 'timesteps',
-                'data': model.scenario.dt.timestamp()})
-            queue.put({'topic': 'agents', 'data': model.get_agents()})
-            if not model.trivial and model.sim.save_verbose:
-                queue.put({'topic': 'virus', 'data': model.scenario.virus.matrix.copy()})
-
-            sim_dt = model.scenario.dt.strftime('%y-%m-%d %H:%M:%S')
-            print(f'Model Step: {n_iter}    Runtime: {model_time:.2f}s    SimDT: {sim_dt}', end='\r')
-
-    event.set()
-    if model.trivial and model.sim.save_verbose:
-        queue.put({'topic': 'trivial', 'data': {
-            'virus_shape': (model.sim.max_iter, *model.sim.shape)
-        }})
-    else:
-        queue.put({'topic': '', 'data': 'stop'})
-
-    print('\n' + '=' * 50)
-    print('Performance Statistics')
-    print('-' * 50)
-    print(f'Total iterations: {n_iter}')
-    print(f'Total simulation steps: {n_iter * model.sim.save_resolution}')
-    print(f'Total simulation time: {model_time}')
-
-    print('-' * 50)
-    try:
-        print(f'Avg iter time: {(time.perf_counter()-start_time) / n_iter}')
-        print(f'Avg model cycle time: {model_time / n_iter}')
-        print(f'Avg simulation step time: {model_time / n_iter / model.sim.save_resolution}')
-    except ZeroDivisionError:
-        pass
-    print('=' * 50)
+    ModelClass(config).simulate(queue, event)
