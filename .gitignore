@@ -5,11 +5,11 @@ __pycache__/
 .mypy_cache/
 
 *.hdf5
-src/data/exports/*.pdf
-src/data/exports/*.mp4
+backend/data/exports/*.pdf
+backend/data/exports/*.mp4
 test.py
 experiment.py
 
-src/data/logs/
-src/data/postgres/
-src/data/pgadmin/
+backend/data/logs/
+backend/data/postgres/
+backend/data/pgadmin/

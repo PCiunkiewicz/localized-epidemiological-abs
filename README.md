@@ -12,7 +12,7 @@ Epidemiological modeling is used, under certain assumptions, to represent the sp
 ### Directory Structure
 
 ```bash
-src/
+backend/
 ├── benchmark.py
 ├── bulk-stats.sh
 ├── experiment.py
