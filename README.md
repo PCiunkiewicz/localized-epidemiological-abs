@@ -11,38 +11,23 @@ Epidemiological modeling is used, under certain assumptions, to represent the sp
 
 ## Agent-Based Model Simulation notes
 
-### Directory Structure
+### Docker Compose
+
+This tool uses docker to orchestrate the various services required to run the simulation. Launch the stack using
 
 ```bash
-backend/
-├── benchmark.py
-├── bulk-stats.sh
-├── experiment.py
-├── export.py
-├── launch.py
-├── multirun.sh
-├── exports/
-│   └── exported animations and images
-├── mapfiles/
-│   └── scenario maps as RGB png files
-├── outputs/
-│   └── simulation results as hdf5 files
-├── run_configs/
-│   └── scenario configurations as json files
-├── simulation/
-│   ├── agent.py
-│   ├── model.py
-│   ├── publisher.py
-│   ├── scenario.py
-│   ├── utils.py
-│   └── writer.py
-└── tools/
-    ├── animation.py
-    ├── snapshot.py
-    └── utils.py
+docker compose up
+```
+
+OR (for older versions of docker compose)
+
+```bash
+docker-compose up
 ```
 
 ### Example Script Invocations
+
+Note that these script invocations should be done from the `backend/` directory.
 
 #### Launch
 
