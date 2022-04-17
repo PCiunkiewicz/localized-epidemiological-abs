@@ -6,6 +6,7 @@ from django.db import models
 from django.core.validators import validate_slug, MinValueValidator
 
 # TODO: all models - write appropriate on-create and on-delete logic
+# TODO: add Export model and logic for figures
 
 class Terrain(models.Model):
     """
