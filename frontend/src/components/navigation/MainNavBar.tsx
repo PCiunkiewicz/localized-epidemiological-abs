@@ -1,33 +1,46 @@
-import { useContext } from 'react';
-import { Container, Form, Nav, Navbar } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Container, Nav, Navbar, NavDropdown } from 'react-bootstrap';
 
-import { ThemeContext } from '../../contexts/ThemeContext';
+import { useNavContext } from '../../contexts/NavContext';
+import NewSimulation from '../api/simulation/NewSimulation';
 
 export default function MainNavBar() {
-  const { darkMode, toggleDarkMode } = useContext(ThemeContext);
+  const { handleNewSim, handleNewVirus } = useNavContext();
   return (
-    <Navbar
-      bg={darkMode ? 'dark' : 'light'}
-      variant={darkMode ? 'dark' : 'light'}
-      sticky='top'
-    >
-      <Container>
-        <Navbar.Brand href='#home'>Navbar</Navbar.Brand>
-        <Nav className='me-auto'>
-          <Nav.Link href='#home'>Home</Nav.Link>
-          <Nav.Link href='#features'>Features</Nav.Link>
-          <Nav.Link href='#pricing'>Pricing</Nav.Link>
-          <Form>
-            <Form.Check
-              type='switch'
-              id='custom-switch'
-              label='Dark Mode'
-              onClick={toggleDarkMode}
-            />
-          </Form>
-        </Nav>
-      </Container>
-    </Navbar>
+    <>
+      <Navbar sticky='top' bg='light' variant='light'>
+        <Container>
+          <Navbar.Brand href='home'>LocABS</Navbar.Brand>
+          <Nav className='me-auto'>
+            <NavDropdown title='File' id='basic-nav-dropdown'>
+              <NavDropdown.Item onClick={handleNewSim}>New Simulation</NavDropdown.Item>
+              <NavDropdown.Item onClick={handleNewVirus}>New Virus</NavDropdown.Item>
+              <NavDropdown.Divider />
+              <NavDropdown.Item href='http://localhost:8080/browser/' target='_blank'>
+                DB Admin
+              </NavDropdown.Item>
+            </NavDropdown>
+            <Nav.Link>Scenarios</Nav.Link>
+            <Nav.Link>Runs</Nav.Link>
+            <Nav.Link>Statistics</Nav.Link>
+            <NavDropdown title='Explore' id='basic-nav-dropdown'>
+              <NavDropdown.Item>Terrains</NavDropdown.Item>
+              <NavDropdown.Item>Simulations</NavDropdown.Item>
+              <NavDropdown.Item>Viruses</NavDropdown.Item>
+              <NavDropdown.Item>Scenarios</NavDropdown.Item>
+              <NavDropdown.Item>Runs</NavDropdown.Item>
+            </NavDropdown>
+          </Nav>
+          <Nav>
+            <Nav.Link href='https://doi.org/10.1016/j.compbiomed.2022.105396' target='_blank'>
+              Literature
+            </Nav.Link>
+            <Nav.Link href='https://github.com/PCiunkiewicz/localized-epidemiological-abs' target='_blank'>
+              GitHub
+            </Nav.Link>
+          </Nav>
+        </Container>
+      </Navbar>
+      <NewSimulation />
+    </>
   );
 }

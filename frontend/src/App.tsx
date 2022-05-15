@@ -1,32 +1,23 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+// import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import { ThemeWrapper } from './contexts/ThemeContext';
 import { MainNavBar } from './components/navigation';
+import Home from './components/Home';
+import { NavWrapper } from './contexts/NavContext';
 
 function App() {
   return (
-    <ThemeWrapper>
-      <div className='App'>
-        <MainNavBar></MainNavBar>
-        <header className='App-header'>
-          <img src={logo} className='App-logo' alt='logo' />
-          <p>
-            Edit <code>src/App.tsx</code> and save to reload.
-          </p>
-          <a
-            className='App-link'
-            href='https://reactjs.org'
-            target='_blank'
-            rel='noopener noreferrer'
-          >
-            Learn React
-          </a>
-        </header>
-      </div>
-    </ThemeWrapper>
+    <BrowserRouter>
+      <NavWrapper>
+        <MainNavBar />
+        <Routes>
+          <Route path='/home' element={<Home />} />
+          <Route path='/home' element={<Home />} />
+        </Routes>
+      </NavWrapper>
+    </BrowserRouter>
   );
 }
 
