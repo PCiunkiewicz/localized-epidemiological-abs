@@ -1,8 +1,9 @@
 argh==0.26.2
 dacite==1.6.0
 django==4.0
+django-cors-headers==3.13.0
 djangorestframework==3.13.1
-h5py==3.6.0
+h5py==3.7.0
 matplotlib==3.5.1
 numpy==1.22.3
 psycopg2==2.9.3

@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # 'django.contrib.sessions', # uncomment to restore sessions
     # 'django.contrib.messages', # uncomment to restore messages
     'rest_framework',
+    'corsheaders',
     'api',
     'api.simulation',
 ]
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     # 'django.contrib.sessions.middleware.SessionMiddleware', # uncomment to restore sessions
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     # 'django.contrib.auth.middleware.AuthenticationMiddleware', # uncomment to restore auth
@@ -59,6 +61,10 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
     ]
 }
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
 
 API_VERSION = 'v1'
 
