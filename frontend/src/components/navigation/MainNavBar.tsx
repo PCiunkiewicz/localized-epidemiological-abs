@@ -2,6 +2,7 @@ import { Container, Nav, Navbar, NavDropdown } from 'react-bootstrap';
 
 import { useNavContext } from '../../contexts/NavContext';
 import NewSimulation from '../api/simulation/NewSimulation';
+import NewVirus from '../api/virus/NewVirus';
 
 export default function MainNavBar() {
   const { handleNewSim, handleNewVirus } = useNavContext();
@@ -23,9 +24,9 @@ export default function MainNavBar() {
             <Nav.Link>Runs</Nav.Link>
             <Nav.Link>Statistics</Nav.Link>
             <NavDropdown title='Explore' id='basic-nav-dropdown'>
-              <NavDropdown.Item>Terrains</NavDropdown.Item>
-              <NavDropdown.Item>Simulations</NavDropdown.Item>
-              <NavDropdown.Item>Viruses</NavDropdown.Item>
+              <NavDropdown.Item href='terrains'>Terrains</NavDropdown.Item>
+              <NavDropdown.Item href='simulations'>Simulations</NavDropdown.Item>
+              <NavDropdown.Item href='viruses'>Viruses</NavDropdown.Item>
               <NavDropdown.Item>Scenarios</NavDropdown.Item>
               <NavDropdown.Item>Runs</NavDropdown.Item>
             </NavDropdown>
@@ -41,6 +42,7 @@ export default function MainNavBar() {
         </Container>
       </Navbar>
       <NewSimulation />
+      <NewVirus />
     </>
   );
 }

@@ -2,8 +2,8 @@ import { SyntheticEvent, useState } from 'react';
 import { Button, Col, Form, Modal, Row } from 'react-bootstrap';
 
 import { useNavContext } from '../../../contexts/NavContext';
-import { Terrain } from '../../../types/api/terrain';
-import { formDefault } from '../../../utils/api/terrain';
+import { Terrain } from '../../../types/api';
+import TerrainDataService, { formDefault } from '../../../utils/api/terrain';
 
 export default function NewTerrain() {
   const { newTerrain, handleNewTerrain } = useNavContext();
@@ -15,10 +15,8 @@ export default function NewTerrain() {
 
   const onSave = (e: SyntheticEvent) => {
     e.preventDefault();
-    // const formData = new FormData(e.target),
-    //   formDataObj = Object.fromEntries(formData.entries());
-    // console.log(formDataObj);
     console.log(formData);
+    TerrainDataService.post(formData);
     handleClose();
   };
 

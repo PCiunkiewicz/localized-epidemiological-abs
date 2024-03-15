@@ -1,26 +1,28 @@
-import { SyntheticEvent, useState } from 'react';
+import { SyntheticEvent, useEffect, useState } from 'react';
 import { Button, Col, Form, Modal, Row } from 'react-bootstrap';
 
 import { useNavContext } from '../../../contexts/NavContext';
-import { Simulation } from '../../../types/api/simulation';
-import { Terrain } from '../../../types/api/terrain';
-import { formDefault } from '../../../utils/api/simulation';
+import { Simulation, Terrain } from '../../../types/api';
+import SimulationDataService, { formDefault } from '../../../utils/api/simulation';
+import TerrainDataService from '../../../utils/api/terrain';
 import NewTerrain from '../terrain/NewTerrain';
 
 export default function NewSimulation() {
   const { newSim, handleNewSim, newTerrain, handleNewTerrain } = useNavContext();
 
   const [formData, setFormData] = useState<Simulation>(formDefault);
+  const [terrains, setTerrains] = useState<Terrain[]>([]);
 
   const handleChange = (name: string, value: string | number | boolean) => {
+    if (name === 'mapfile') {
+      value = String(value).replace('C:\\fakepath\\', 'data/mapfiles/');
+    }
     setFormData({ ...formData, [name]: value });
   };
 
   const onSave = (e: SyntheticEvent) => {
     e.preventDefault();
-    // const formData = new FormData(e.target),
-    //   formDataObj = Object.fromEntries(formData.entries());
-    // console.log(formDataObj);
+    SimulationDataService.post(formData);
     console.log(formData);
     handleClose();
   };
@@ -32,188 +34,11 @@ export default function NewSimulation() {
     setFormData({ ...formData, terrain: selectedTerrain });
   };
 
-  const terrains: Terrain[] = [
-    {
-      id: 1,
-      name: 'WALL',
-      value: '#000000',
-      color: '#000000',
-      material: undefined,
-      walkable: false,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 2,
-      name: 'AGENT0',
-      value: '#0000ff',
-      color: '#0000ff',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 3,
-      name: 'PUBLIC',
-      value: '#00ff00',
-      color: '#00ff00',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 4,
-      name: 'PRINTER',
-      value: '#01ff00',
-      color: '#01ff00',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 5,
-      name: 'MICROWAVE',
-      value: '#02ff00',
-      color: '#02ff00',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 6,
-      name: 'TEA',
-      value: '#03ff00',
-      color: '#03ff00',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 7,
-      name: 'AGENT1',
-      value: '#0100ff',
-      color: '#0100ff',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 8,
-      name: 'AGENT2',
-      value: '#0200ff',
-      color: '#0200ff',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 9,
-      name: 'AGENT3',
-      value: '#0300ff',
-      color: '#0300ff',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 10,
-      name: 'AGENT4',
-      value: '#0400ff',
-      color: '#0400ff',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 11,
-      name: 'AGENT5',
-      value: '#0500ff',
-      color: '#0500ff',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 12,
-      name: 'AGENT6',
-      value: '#0600ff',
-      color: '#0600ff',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 13,
-      name: 'AGENT7',
-      value: '#0700ff',
-      color: '#0700ff',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 14,
-      name: 'AGENT8',
-      value: '#0800ff',
-      color: '#0800ff',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 15,
-      name: 'DESK',
-      value: '#7f7f7f',
-      color: '#7f7f7f',
-      material: undefined,
-      walkable: false,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 16,
-      name: 'WINDOW',
-      value: '#c3c3c3',
-      color: '#c3c3c3',
-      material: undefined,
-      walkable: false,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 17,
-      name: 'EXIT',
-      value: '#ffff00',
-      color: '#ffff00',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-    {
-      id: 18,
-      name: 'OPEN',
-      value: '#ffffff',
-      color: '#ffffff',
-      material: undefined,
-      walkable: true,
-      restricted: true,
-      access_level: 0,
-    },
-  ];
+  useEffect(() => {
+    TerrainDataService.list().then((response) => {
+      setTerrains(response.data);
+    });
+  }, [newTerrain]);
 
   const handleClose = () => {
     handleNewSim();
