@@ -1,6 +1,7 @@
-FROM node:17.9.0-slim
+FROM python:3.10-slim
 
 WORKDIR /app
-COPY package.json ./
+RUN pip install -U pip
+RUN pip install streamlit==1.32.2 streamlit_code_editor==0.1.12 streamlit-monaco==0.1.3
 
-RUN npm i
+ENTRYPOINT ["streamlit", "run", "Home.py"]
