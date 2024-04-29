@@ -1,5 +1,6 @@
 argh==0.26.2
 dacite==1.6.0
+dask[complete]==2023.2.0
 django==4.0
 django-cors-headers==3.13.0
 djangorestframework==3.13.1

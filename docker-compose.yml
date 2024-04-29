@@ -52,7 +52,6 @@ services:
   web:
     container_name: abs-web
     build: ./frontend
-    command: npm start
     volumes:
       - './frontend:/app'
       - './backend/data/exports:/data/exports'
