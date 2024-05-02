@@ -4,13 +4,11 @@ simulation snapshots as image files.
 """
 
 import h5py
-
 import matplotlib.pyplot as plt
 from matplotlib import image
-
-from tools.utils import reshape, str_date, STATUS_COLOR
-from simulation.types import Status
 from simulation.scenario import VIRUS_SCALE
+from simulation.types.agent import Status
+from tools.utils import STATUS_COLOR, reshape, str_date
 
 
 class SnapshotSim:
@@ -39,14 +37,24 @@ class SnapshotSim:
         plot_ref = []
         for status in Status:
             ref = ax.plot(
-                *reshape(self.agents[i], status.value), 'o', ms=16,
-                c=STATUS_COLOR[status.name], mec="black", label=status.name)
+                *reshape(self.agents[i], status.value),
+                'o',
+                ms=16,
+                c=STATUS_COLOR[status.name],
+                mec='black',
+                label=status.name,
+            )
             plot_ref.append(ref[0])
 
         if label:
             for n in range(self.agents[i].shape[0]):
                 x, y, _ = self.agents[i][n]
-                ax.annotate(n+1, (y, x), va='center', ha='center')
+                ax.annotate(
+                    n + 1,
+                    (y, x),
+                    va='center',
+                    ha='center',
+                )
 
         ax.set(xticks=[], yticks=[])
         plt.savefig(outfile, dpi=300, bbox_inches='tight')

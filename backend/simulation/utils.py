@@ -22,5 +22,5 @@ def mask_color(img, hex_value):
     Generate pixel mask for matching hex color.
     """
     rgb = colors.to_rgb(hex_value)
-    pixel_mask = np.all(np.isclose(img, rgb), axis=2)
+    pixel_mask = np.all(np.isclose(img, rgb), axis=3)
     return pixel_mask

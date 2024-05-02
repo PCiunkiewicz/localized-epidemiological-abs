@@ -89,3 +89,42 @@ def save_agents(port, filename):
         f.create_dataset('timesteps', data=timesteps, compression='gzip', compression_opts=9)
         if virus is not None:
             f.create_dataset('virus', data=virus, compression='gzip', compression_opts=9)
+
+
+def save_agents_fast(port, filename):
+    """
+    Function for writing data to file.
+
+    Parameters
+    ----------
+    port : int
+        ZMQ port accessed by publisher.
+    filename : str
+        Path to output file (must be .hdf5).
+    """
+    if filename is None:
+        return
+    store = {}
+    context = zmq.Context()
+    with context.socket(zmq.SUB) as socket:
+        socket.connect(f"tcp://localhost:{port}")
+        socket.setsockopt(zmq.RCVHWM, 0)
+        socket.setsockopt(zmq.SUBSCRIBE, b'agents')
+        socket.setsockopt(zmq.SUBSCRIBE, b'agent_info')
+        socket.setsockopt(zmq.SUBSCRIBE, b'timesteps')
+        socket.setsockopt(zmq.SUBSCRIBE, b'')
+        while True:
+            topic = socket.recv_string()
+            if topic in ('agents', 'timesteps'):
+                store[topic] = recv_array(socket)
+            elif topic == 'agent_info':
+                data = socket.recv_pyobj()
+                store[topic] = np.array(data, dtype=h5py.special_dtype(vlen=str))
+            else:
+                data = socket.recv_pyobj()
+                break
+
+    with h5py.File(filename, 'w') as f:
+        f.create_dataset('agents', data=store['agents'], compression='gzip', compression_opts=9)
+        f.create_dataset('agent_info', data=store['agent_info'], compression='gzip', compression_opts=9)
+        f.create_dataset('timesteps', data=store['timesteps'], compression='gzip', compression_opts=9)

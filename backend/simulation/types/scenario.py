@@ -5,12 +5,12 @@ typing is supported.
 """
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
 from dacite import from_dict
 from matplotlib import image
-
 from simulation.utils import mask_color
 
 
@@ -47,9 +47,17 @@ class SimSetup:
     masks: dict[str, np.ndarray] = field(default_factory=dict)
 
     def __post_init__(self):
-        img = image.imread(self.mapfile)[:, :, :3]
-        self.shape = img.shape[:2]
+        map_path = Path(self.mapfile).resolve()
+        if map_path.is_file():
+            img = image.imread(map_path)[:, :, :3]
+            img = np.expand_dims(img, axis=2)
+        else:
+            img = []
+            for file in sorted(map_path.iterdir()):
+                img.append(image.imread(file)[:, :, :3])
+            img = np.stack(img, axis=2)
 
+        self.shape = img.shape[:-1]
         self.masks['VALID'] = np.ones(self.shape, dtype=bool)
 
         for terrain in self.terrain:

@@ -5,8 +5,8 @@ typing is supported.
 """
 
 import datetime as dt
-from enum import Enum
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Optional
 
 from dacite import from_dict
@@ -16,12 +16,14 @@ class Status(Enum):
     """
     Infection status of the Agents.
     """
+
     SUSCEPTIBLE = 1
     INFECTED = 2
     RECOVERED = 3
     QUARANTINED = 4
     DECEASED = 5
-    UNKNOWN = 6
+    HOSPITALIZED = 6
+    UNKNOWN = 7
 
 
 @dataclass
@@ -50,6 +52,7 @@ class AgentState:
     status: Status | str = Status.UNKNOWN
     x: int = 0
     y: int = 0
+    z: int = 0
     path: list[tuple[int, int]] = field(default_factory=list)
 
     def __post_init__(self):

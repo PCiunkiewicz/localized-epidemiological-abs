@@ -3,23 +3,23 @@ The `stats` module contains code exporting
 simulation stats as image files.
 """
 
-import os
 import json
+import os
 from multiprocessing import Pool
 
 import h5py
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from matplotlib import image
-from tqdm import tqdm
-
+from simulation.types.agent import Status
 from simulation.utils import AttrDict
-from simulation.types import Status
+from tqdm import tqdm
 
 sns.set('paper')
 
 # TODO: revisit and refactor all classes
+
 
 class StatsSim:
     """
@@ -36,7 +36,7 @@ class StatsSim:
             with h5py.File(results, 'r') as file:
                 try:
                     agents = file['agents'].__array__()
-                    act_stat = agents[:,:,2]
+                    act_stat = agents[:, :, 2]
                     res.append(act_stat)
                 except Exception:
                     print(results)
@@ -51,7 +51,7 @@ class StatsSim:
         _, ax = plt.subplots(figsize=[5, 3.5])
 
         for i in range(self.prob.shape[-1]):
-            _ = ax.plot(self.hours, self.prob[:,i], label=f'Agent {i+1}')
+            _ = ax.plot(self.hours, self.prob[:, i], label=f'Agent {i+1}')
         _ = ax.set(
             xlabel='Time elapsed (hours)',
             ylabel='Probability of Infection',
@@ -85,7 +85,7 @@ class StatsSimComplete:
 
         self.prob = (np.array(res) != 1).mean(axis=0)
         if flat:
-            self.prob -= self.prob[0,:] # - param.infection_rate
+            self.prob -= self.prob[0, :]  # - param.infection_rate
             self.label += '-flat'
         self.hours = np.arange(param.max_iter) / 3600 * param.t_step * param.save_resolution
 
@@ -94,7 +94,7 @@ class StatsSimComplete:
         if size > self.min_size:
             with h5py.File(file, 'r') as file:
                 agents = file['agents'].__array__()
-                return agents[:,:,2]
+                return agents[:, :, 2]
         else:
             return np.zeros(self.shape)
 
@@ -105,7 +105,7 @@ class StatsSimComplete:
         _, ax = plt.subplots(figsize=[5, 3.5])
 
         for i in range(self.prob.shape[-1]):
-            _ = ax.plot(self.hours, self.prob[:,i], label=f'Agent {i+1}')
+            _ = ax.plot(self.hours, self.prob[:, i], label=f'Agent {i+1}')
 
         if self.label.endswith('-flat'):
             label = 'Excess Risk of Infection'
@@ -149,7 +149,7 @@ class StatsSimStatus:
     def _load(self, file):
         with h5py.File(file, 'r') as file:
             agents = file['agents'].__array__()
-            status = agents[:,:,2]
+            status = agents[:, :, 2]
             return [(status == s.value).mean(axis=1) for s in Status]
 
     def export(self, fill=True, ylim=None):
@@ -170,7 +170,7 @@ class StatsSimStatus:
             xlabel='Time elapsed (hours)',
             ylabel='Proportion of Population',
             xlim=[0, self.hours.max()],
-            ylim=[0, ylim]
+            ylim=[0, ylim],
         )
         _ = ax.legend()
         plt.savefig('data/exports/sir-plot.png', dpi=600, bbox_inches='tight')

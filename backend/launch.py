@@ -6,17 +6,16 @@ file output location.
 """
 
 import time
-from multiprocessing import Queue, Process, Event, cpu_count
-from concurrent.futures import ProcessPoolExecutor as Pool
+from multiprocessing import Event, Queue, cpu_count
+from pathlib import Path
+from threading import Thread
 
 import numpy as np
-from argh import arg, ArghParser
-from pathlib import Path
-
-from simulation.model import simulate_model, SIRModel
+from argh import ArghParser, arg
+from dask.distributed import Client, LocalCluster
+from simulation.model import SIRModel, simulate_model
 from simulation.publisher import publisher
-from simulation.writer import save_agents
-
+from simulation.writer import save_agents, save_agents_fast
 
 PORT_RANGE = 100
 
@@ -28,21 +27,38 @@ class SimController(object):
     a dedicated Python module or into the `model` module later.
     """
 
-    def __init__(self, config, port=5556, outfile=None):
+    def __init__(self, config, port=5556, outfile=None, fast=True):
         super().__init__()
         self.pub_queue = Queue()
         self.stop_publisher = Event()
         self.stop_simulation = Event()
+        method = save_agents_fast if fast else save_agents
 
-        self.publisher_process = Process(
+        self.publisher_process = Thread(
             target=publisher,
-            args=(self.pub_queue, self.stop_publisher, port)
+            args=(
+                self.pub_queue,
+                self.stop_publisher,
+                port,
+            ),
         )
-        self.simulation_process = Process(
+        self.simulation_process = Thread(
             target=simulate_model,
-            args=(SIRModel, config, self.pub_queue, self.stop_simulation),
+            args=(
+                SIRModel,
+                config,
+                self.pub_queue,
+                self.stop_simulation,
+                fast,
+            ),
         )
-        self.writer_process = Process(target=save_agents, args=(port, outfile))
+        self.writer_process = Thread(
+            target=method,
+            args=(
+                port,
+                outfile,
+            ),
+        )
 
     def launch(self):
         self.publisher_process.start()
@@ -58,14 +74,15 @@ class SimController(object):
 
 
 @arg('config', help='Path to the config file; example `data/run_configs/eng301.json`')
-def run_sim(config, run_id=0, port=5556, save_dir='data/outputs'):
+def run_sim(config, run_id=0, port=5556, save_dir='data/outputs', fast=True):
     Path(save_dir).mkdir(exist_ok=True)
     start = time.perf_counter()
 
     sim = SimController(
         Path(config),
         port=port,
-        outfile=Path(f'{save_dir}/simulation_{run_id}.hdf5')
+        outfile=Path(f'{save_dir}/simulation_{run_id}.hdf5'),
+        fast=fast,
     )
 
     sim.launch()
@@ -75,7 +92,6 @@ def run_sim(config, run_id=0, port=5556, save_dir='data/outputs'):
     print('Terminating...')
     sim.terminate()
     print(f'Final run time: {time.perf_counter() - start}\n')
-    return
 
 
 def _run_args(args):
@@ -83,16 +99,25 @@ def _run_args(args):
 
 
 @arg('config', help='Path to the config file; example `data/run_configs/eng301.json`')
-def run_parallel(config, runs=4, offset=0, base_port=5556, save_dir='data/outputs', n_jobs=None):
-    if not n_jobs:
-        n_jobs = max(cpu_count() - 1, 1)
+def run_parallel(config, runs=4, offset=0, base_port=5556, save_dir='data/outputs', n_jobs=8):
+    # if not n_jobs:
+    #     n_jobs = max(cpu_count() - 1, 1)
 
     run_ids = range(offset, runs + offset)
     ports = np.arange(runs) % PORT_RANGE + base_port
     args = [(config, run_id, port, save_dir) for run_id, port in zip(run_ids, ports)]
 
-    with Pool(max_workers=n_jobs) as pool:
-        pool.map(_run_args, args)
+    with (
+        LocalCluster(
+            n_workers=n_jobs,
+            processes=True,
+            threads_per_worker=1,
+            memory_limit='1GB',
+        ) as cluster,
+        Client(cluster) as client,
+    ):
+        res = client.map(_run_args, args)
+        client.gather(res)
 
 
 parser = ArghParser()
@@ -101,6 +126,6 @@ parser.add_commands([run_sim, run_parallel])
 
 if __name__ == '__main__':
     # Uncomment one of these lines if you don't want to use CLI args
-    # run_sim('data/run_configs/eng301.json')
+    run_sim('data/run_configs/eng301.json', fast=False)
     # run_sim_parallel('data/run_configs/eng301.json', 20)
     parser.dispatch()

@@ -7,15 +7,14 @@ the simulation due to the way that Python objects are passed
 between processes and threads.
 """
 
+import datetime as dt
 import json
 import time
-import datetime as dt
 from abc import ABC, abstractmethod
 
 import numpy as np
-
-from simulation.scenario import SIRScenario, Scenario
-from simulation.agent import SIRAgent, Agent
+from simulation.agent import Agent, SIRAgent
+from simulation.scenario import Scenario, SIRScenario
 from simulation.types.agent import AgentSpec
 from simulation.types.scenario import ScenarioSpec
 
@@ -82,6 +81,42 @@ class SIRModel(Model):
     def __init__(self, config):
         super().__init__(config, AgentClass=SIRAgent, ScenarioClass=SIRScenario)
 
+    def summarize_agent_info(self):
+        """
+        Summarize agent information for saving.
+        """
+        ret = []
+        for p in self.population:
+            if p.info.vax_doses == 0:
+                vax = 'novax'
+            elif p.info.vax_doses == 1:
+                vax = '1dose'
+            elif p.info.vax_doses == 2:
+                vax = p.info.vax_type.lower()
+
+            if p.info.mask_type == 'NONE':
+                mask = 'nomask'
+            else:
+                mask = p.info.mask_type.lower()
+
+            ret.append(
+                str(
+                    {
+                        'age': p.age,
+                        'sex': np.random.choice(['M', 'F']),
+                        'long_covid': p.long_covid,
+                        'prevention_index': p.prevention_index,
+                        'mask': mask,
+                        'vax': vax,
+                        'infected': p.infected,
+                        'hospitalized': p.hospitalized,
+                        'deceased': p.deceased,
+                        'capacity': len(self.population),
+                    }
+                )
+            )
+        return ret
+
     def model_step(self):
         """
         Steps the simulation forward one iteration
@@ -102,7 +137,7 @@ class SIRModel(Model):
         model_time = 0
         start_time = time.perf_counter()
 
-        if all([p.is_('SUSCEPTIBLE') for p in self.population]):
+        if all(p.is_('SUSCEPTIBLE') for p in self.population):
             self.trivial = True
             print('TRIVIAL')
 
@@ -112,21 +147,22 @@ class SIRModel(Model):
                 start = time.perf_counter()
                 self.model_step()
                 model_time += time.perf_counter() - start
-                queue.put({
-                    'topic': 'timesteps',
-                    'data': self.scenario.dt.timestamp()})
+                queue.put({'topic': 'timesteps', 'data': self.scenario.dt.timestamp()})
                 queue.put({'topic': 'agents', 'data': self.get_agents()})
                 if not self.trivial and self.sim.save_verbose:
                     queue.put({'topic': 'virus', 'data': self.scenario.virus.matrix.copy()})
 
-                sim_dt = self.scenario.dt.strftime('%y-%m-%d %H:%M:%S')
-                print(f'Model Step: {n_iter}    Runtime: {model_time:.2f}s    SimDT: {sim_dt}', end='\r')
+                # sim_dt = self.scenario.dt.strftime('%y-%m-%d %H:%M:%S')
+                # print(f'Model Step: {n_iter}    Runtime: {model_time:.2f}s    SimDT: {sim_dt}', end='\r')
 
         event.set()
         if self.trivial and self.sim.save_verbose:
-            queue.put({'topic': 'trivial', 'data': {
-                'virus_shape': (self.sim.max_iter, *self.sim.shape)
-            }})
+            queue.put(
+                {
+                    'topic': 'trivial',
+                    'data': {'virus_shape': (self.sim.max_iter, *self.sim.shape)},
+                }
+            )
         else:
             queue.put({'topic': '', 'data': 'stop'})
 
@@ -146,8 +182,44 @@ class SIRModel(Model):
             pass
         print('=' * 50)
 
+    def simulate_fast(self, queue, event):
+        n_iter = 0
+        model_time = 0
+        start_time = time.perf_counter()
 
-def simulate_model(ModelClass: type, config: str, queue, event):
+        if all(p.is_('SUSCEPTIBLE') for p in self.population):
+            self.trivial = True
+            print('TRIVIAL')
+
+        data = {'timesteps': [], 'agents': []}
+
+        while n_iter < self.sim.max_iter:
+            n_iter += 1
+            start = time.perf_counter()
+            self.model_step()
+            model_time += time.perf_counter() - start
+            data['timesteps'].append(self.scenario.dt.timestamp())
+            data['agents'].append(self.get_agents())
+
+        event.set()
+        queue.put({'topic': 'timesteps', 'data': np.array(data['timesteps'])})
+        queue.put({'topic': 'agents', 'data': np.array(data['agents'])})
+        queue.put({'topic': 'agent_info', 'data': self.summarize_agent_info()})
+        queue.put({'topic': '', 'data': 'stop'})
+
+        print('\n' + '=' * 50)
+        print(f'Total iterations: {n_iter}')
+        print(f'Total simulation time: {model_time}')
+
+        try:
+            print(f'Avg iter time: {(time.perf_counter()-start_time) / n_iter}')
+            print(f'Avg model cycle time: {model_time / n_iter}')
+        except ZeroDivisionError:
+            pass
+        print('=' * 50)
+
+
+def simulate_model(ModelClass: type, config: str, queue, event, fast=True):
     """
     Run SIR Model simulation.
 
@@ -155,4 +227,7 @@ def simulate_model(ModelClass: type, config: str, queue, event):
     the way that objects are passed between processes
     when using multiprocessing.
     """
-    ModelClass(config).simulate(queue, event)
+    if fast:
+        ModelClass(config).simulate_fast(queue, event)
+    else:
+        ModelClass(config).simulate(queue, event)

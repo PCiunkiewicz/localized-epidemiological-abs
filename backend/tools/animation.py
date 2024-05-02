@@ -4,13 +4,12 @@ simulation animations as gif files.
 """
 
 import h5py
-
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import animation, image
-
-from tools.utils import reshape, str_date, STATUS_COLOR
-from simulation.types import Status
 from simulation.scenario import VIRUS_SCALE
+from simulation.types.agent import Status
+from tools.utils import STATUS_COLOR, reshape, str_date
 
 
 class AnimateSim:
@@ -18,15 +17,17 @@ class AnimateSim:
     Base Model class for animating completed simulations.
     """
 
-    def __init__(self, simfile, mapfile):
+    def __init__(self, simfile, mapfile, floor=0):
         self.img = image.imread(mapfile)
+        self.exits = np.all(np.isclose(self.img, (1, 1, 0, 1)), axis=2)
+        self.floor = floor
 
         with h5py.File(simfile, 'r') as file:
             self.agents = file['agents'].__array__()
-            self.virus = file['virus'].__array__()
+            self.virus = file['virus'].__array__()[:, :, :, floor]
             self.timesteps = file['timesteps'].__array__()
 
-        self.im, self.tx, self.plot_ref = self.draw_frame(0)
+        self.im, self.tx, self.plot_ref, self.labels = self.draw_frame(0)
 
     def draw_frame(self, i, cmap='bwr_r'):
         """
@@ -34,17 +35,47 @@ class AnimateSim:
         """
         _, ax = plt.subplots(figsize=[10, 10])
         ax.imshow(self.img)
-        im = ax.imshow(self.virus[i] != 0, alpha=self.virus[i] / VIRUS_SCALE, cmap=cmap)
-        tx = ax.text(1, 2, str_date(self.timesteps[i]), c='w', fontsize=14)
+        im = ax.imshow(
+            self.virus[i] != 0,
+            alpha=self.virus[i] / VIRUS_SCALE,
+            cmap=cmap,
+        )
+        tx = ax.text(
+            x=1,
+            y=1,
+            s=str_date(self.timesteps[i]),
+            c='w',
+            fontsize=12,
+            horizontalalignment='left',
+            verticalalignment='top',
+        )
 
         plot_ref = []
         for status in Status:
             ref = ax.plot(
-                *reshape(self.agents[i], status.value), 'o', ms=16,
-                c=STATUS_COLOR[status.name], mec="black", label=status.name)
+                *reshape(self.agents[i], status.value, self.floor),
+                'o',
+                ms=16,
+                c=STATUS_COLOR[status.name],
+                mec='black',
+                label=status.name,
+            )
             plot_ref.append(ref[0])
 
-        return im, tx, plot_ref
+        labels = []
+        for agent in range(self.agents.shape[1]):
+            labels.append(
+                ax.text(
+                    *self.agents[i, agent][:2][::-1],
+                    agent,
+                    fontsize=8,
+                    c='black',
+                    horizontalalignment='center',
+                    verticalalignment='center',
+                )
+            )
+
+        return im, tx, plot_ref, labels
 
     def animate(self, i):
         """
@@ -53,17 +84,31 @@ class AnimateSim:
         """
         self.im.set_data(self.virus[i] != 0)
         self.im.set_alpha(self.virus[i] / VIRUS_SCALE)
-        self.tx.set_text(str_date(self.timesteps[i]))
+        info = [str_date(self.timesteps[i])]
         for status, ref in zip(Status, self.plot_ref):
-            ref.set_data(*reshape(self.agents[i], status.value))
+            agents = reshape(self.agents[i], status.value, self.floor)
+            info.append(f'{status.name}: {agents.shape[1]}')
+            if agents.size > 0:
+                exit = self.exits[agents[1], agents[0]]
+                ref.set_data(*agents[:, ~exit])
+            else:
+                ref.set_data([], [])
+
+        for (x, y, *_), label in zip(self.agents[i], self.labels):
+            if not self.exits[x, y]:
+                label.set_visible(True)
+                label.set_position((y, x))
+            else:
+                label.set_visible(False)
+
+        self.tx.set_text('\n'.join(info))
         return (self.im,) + tuple(self.plot_ref)
 
     def export(self, outfile):
         """
         Export animation to output file.
         """
-        anim = animation.FuncAnimation(
-            plt.gcf(), self.animate, frames=self.timesteps.size, interval=50, blit=True)
+        anim = animation.FuncAnimation(plt.gcf(), self.animate, frames=self.timesteps.size, interval=50, blit=True)
 
         # writer = FasterFFMpegWriter(fps=30, metadata=dict(artist='Me'), bitrate=1800)
         writer = animation.PillowWriter(fps=30, metadata=dict(artist='Me'), bitrate=1800)
