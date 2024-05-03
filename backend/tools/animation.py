@@ -3,10 +3,13 @@ The `animation` module contains code exporting
 simulation animations as gif files.
 """
 
+from pathlib import Path
+
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import animation, image
+from matplotlib.colors import ListedColormap
 from simulation.scenario import VIRUS_SCALE
 from simulation.types.agent import Status
 from tools.utils import STATUS_COLOR, reshape, str_date
@@ -18,6 +21,9 @@ class AnimateSim:
     """
 
     def __init__(self, simfile, mapfile, floor=0):
+        if Path(mapfile).is_dir():
+            mapfile = f'{mapfile}/{floor}.png'
+
         self.img = image.imread(mapfile)
         self.exits = np.all(np.isclose(self.img, (1, 1, 0, 1)), axis=2)
         self.floor = floor
@@ -29,25 +35,28 @@ class AnimateSim:
 
         self.im, self.tx, self.plot_ref, self.labels = self.draw_frame(0)
 
-    def draw_frame(self, i, cmap='bwr_r'):
+    def draw_frame(self, i):
         """
         Draw initial or arbitrary frame from simulation results.
         """
-        _, ax = plt.subplots(figsize=[10, 10])
+        _, ax = plt.subplots(figsize=[12, 12])
         ax.imshow(self.img)
         im = ax.imshow(
             self.virus[i] != 0,
             alpha=self.virus[i] / VIRUS_SCALE,
-            cmap=cmap,
+            cmap=ListedColormap(['white', 'red'], N=2),
+            vmin=0,
+            vmax=1,
         )
         tx = ax.text(
-            x=1,
-            y=1,
+            x=0.03,
+            y=0.05,
             s=str_date(self.timesteps[i]),
-            c='w',
-            fontsize=12,
+            c='black',
+            fontsize=10,
             horizontalalignment='left',
-            verticalalignment='top',
+            verticalalignment='bottom',
+            transform=ax.transAxes,
         )
 
         plot_ref = []
@@ -55,7 +64,7 @@ class AnimateSim:
             ref = ax.plot(
                 *reshape(self.agents[i], status.value, self.floor),
                 'o',
-                ms=16,
+                ms=12,
                 c=STATUS_COLOR[status.name],
                 mec='black',
                 label=status.name,
@@ -94,8 +103,8 @@ class AnimateSim:
             else:
                 ref.set_data([], [])
 
-        for (x, y, *_), label in zip(self.agents[i], self.labels):
-            if not self.exits[x, y]:
+        for (x, y, z, *_), label in zip(self.agents[i], self.labels):
+            if not self.exits[x, y] and z == self.floor:
                 label.set_visible(True)
                 label.set_position((y, x))
             else:
@@ -108,8 +117,19 @@ class AnimateSim:
         """
         Export animation to output file.
         """
-        anim = animation.FuncAnimation(plt.gcf(), self.animate, frames=self.timesteps.size, interval=50, blit=True)
+        anim = animation.FuncAnimation(
+            plt.gcf(),
+            self.animate,
+            frames=self.timesteps.size,
+            interval=50,
+            blit=True,
+        )
 
         # writer = FasterFFMpegWriter(fps=30, metadata=dict(artist='Me'), bitrate=1800)
-        writer = animation.PillowWriter(fps=30, metadata=dict(artist='Me'), bitrate=1800)
+        writer = animation.PillowWriter(
+            fps=20,
+            metadata=dict(artist='Me'),
+            bitrate=1800,
+        )
         anim.save(outfile, writer=writer)
+        print(f'Animation saved to {outfile}')
