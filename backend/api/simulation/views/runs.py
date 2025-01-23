@@ -3,6 +3,7 @@ Localized Epidemiological ABS API Run Views
 """
 
 import json
+import shutil
 import subprocess
 
 from django.conf import settings
@@ -39,6 +40,32 @@ class RunViewSet(viewsets.ModelViewSet):
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, pk):
+        try:
+            run = Run.objects.get(id=pk)
+        except Run.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        name = request.data.get('name', run.name)
+        response = super().partial_update(request, pk=pk)
+
+        if name != run.name:
+            new_paths = {
+                'save_dir': str(settings.RUN_OUTPUT_DIR / f'{run.id:03}-{name}'),
+                'logfile': str(settings.LOG_DIR / f'{run.id:03}-{name}.log'),
+                'config': str(settings.RUN_CONFIG_DIR / f'{run.id:03}-{name}.json')
+            }
+
+            for key, new_path in new_paths.items():
+                request.data[key] = new_path
+            response = super().partial_update(request, pk=pk)
+
+            shutil.move(run.save_dir, new_paths['save_dir'])
+            shutil.move(run.logfile, new_paths['logfile'])
+            shutil.move(run.config, new_paths['config'])
+
+        return response
 
 
 def launch(run):
