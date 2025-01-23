@@ -17,6 +17,7 @@ from simulation.agent import Agent, SIRAgent
 from simulation.scenario import Scenario, SIRScenario
 from simulation.types.agent import AgentSpec
 from simulation.types.scenario import ScenarioSpec
+from tqdm import tqdm
 
 
 class Model(ABC):
@@ -133,6 +134,7 @@ class SIRModel(Model):
             self.scenario.virus.matrix[:] = 0
 
     def simulate(self, queue, event):
+        print('Simulating...')
         n_iter = 0
         model_time = 0
         start_time = time.perf_counter()
@@ -141,8 +143,14 @@ class SIRModel(Model):
             self.trivial = True
             print('TRIVIAL')
 
+        pbar = tqdm(
+            desc='Timesteps',
+            total=self.sim.max_iter * self.sim.save_resolution,
+            unit='step',
+        )
         while n_iter < self.sim.max_iter:
             if queue.empty():
+                pbar.update(self.sim.save_resolution)
                 n_iter += 1
                 start = time.perf_counter()
                 self.model_step()
@@ -155,6 +163,7 @@ class SIRModel(Model):
                 # sim_dt = self.scenario.dt.strftime('%y-%m-%d %H:%M:%S')
                 # print(f'Model Step: {n_iter}    Runtime: {model_time:.2f}s    SimDT: {sim_dt}', end='\r')
 
+        pbar.close()
         event.set()
         if self.trivial and self.sim.save_verbose:
             queue.put(

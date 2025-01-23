@@ -34,6 +34,7 @@ class AgentInfo:
     age: Optional[float]
     start_zone: Optional[str]
     work_zone: Optional[str]
+    home_zone: Optional[str]
     schedule: dict[str, str] = field(default_factory=dict)
     access_level: int = 0
     urgency: float = 1.0

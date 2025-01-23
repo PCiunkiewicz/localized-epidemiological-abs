@@ -53,12 +53,21 @@ class SimSetup:
             img = np.expand_dims(img, axis=2)
         else:
             img = []
+            transit_nodes = []
             for file in sorted(map_path.iterdir()):
-                img.append(image.imread(file)[:, :, :3])
+                if file.suffix == '.png':
+                    if '.nodes' not in file.suffixes:
+                        img.append(image.imread(file)[:, :, :3])
+                    else:
+                        transit_nodes.append(image.imread(file)[:, :, :3])
             img = np.stack(img, axis=2)
+            if transit_nodes:
+                transit_nodes = np.stack(transit_nodes, axis=2)
+                self.masks['TRANSIT_NODES'] = mask_color(transit_nodes, '#00ffff')
 
         self.shape = img.shape[:-1]
         self.masks['VALID'] = np.ones(self.shape, dtype=bool)
+        self.masks['BARRIER'] = np.zeros(self.shape, dtype=bool)
 
         for terrain in self.terrain:
             mask = mask_color(img, terrain.value)
@@ -68,6 +77,9 @@ class SimSetup:
                 self.masks['VALID'] &= ~mask
             else:
                 self.masks['VALID'] |= mask
+
+            if terrain.name in ['WALL', 'DOOR', 'STAIRS', 'EXIT']:
+                self.masks['BARRIER'] |= mask
 
 
 @dataclass

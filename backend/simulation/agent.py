@@ -9,9 +9,6 @@ from abc import ABC, abstractmethod
 from bisect import bisect_left
 
 import numpy as np
-from pathfinding.core.grid import Grid
-from pathfinding.core.world import World
-from pathfinding.finder.bi_a_star import BiAStarFinder
 from simulation.scenario import VIRUS_SCALE, Scenario
 from simulation.types.agent import AgentSpec, AgentTime, Status
 
@@ -49,16 +46,6 @@ class Agent(ABC):  # TODO: Set up as abstract base class
                 self.status = Status.INFECTED
             else:
                 self.status = Status.SUSCEPTIBLE
-
-        world = {}
-        for floor in range(self.scenario.sim.masks['VALID'].shape[2]):
-            world[floor] = Grid(
-                matrix=self.scenario.sim.masks['VALID'][:, :, floor].T,
-                grid_id=floor,
-            )
-
-        self.world = World(world)
-        self.finder = BiAStarFinder()
 
         if self.info.start_zone:
             self.pos = self.scenario.get_idx(self.info.start_zone)
@@ -103,11 +90,22 @@ class Agent(ABC):  # TODO: Set up as abstract base class
         if wait > 0:
             self.state.path = [self.pos] * wait
         elif zone is not None:
-            if zone == 'WORK':
-                zone = self.info.work_zone
+            match zone:
+                case 'WORK':
+                    zone = self.info.work_zone
+                case 'HOME':
+                    zone = self.info.home_zone
+
             idx = self.scenario.get_idx(zone)
             self.pathfind(idx)
-            self.state.path += [self.state.path[-1]] * (120 // self.scenario.sim.t_step)  # at least 2 minutes per task
+
+            if zone == 'OPEN':
+                wait_time = 120 // self.scenario.sim.t_step  # seconds
+            else:
+                wait_time = 3600 // self.scenario.sim.t_step  # seconds
+
+            wait_time = int(wait_time * (1 + self.random.rand()) * 0.5)
+            self.state.path += [self.state.path[-1]] * wait_time
 
     def pathfind(self, idx):
         """
@@ -121,20 +119,24 @@ class Agent(ABC):  # TODO: Set up as abstract base class
         """
         x1, y1, z1 = self.pos
         x2, y2, z2 = idx
-        start = self.world.grids[z1].node(x1, y1)
-        end = self.world.grids[z2].node(x2, y2)
+        start = self.scenario.world.grids[z1].node(x1, y1)
+        end = self.scenario.world.grids[z2].node(x2, y2)
 
-        for grid in self.world.grids.values():
+        for grid in self.scenario.world.grids.values():
             grid.cleanup()
 
-        self.state.path, _ = self.finder.find_path(start, end, self.world)
+        self.state.path, _ = self.scenario.finder.find_path(start, end, self.scenario.world)
 
     def in_(self, zone):
         """
         Check whether agent is in `zone`.
         """
-        if zone == 'WORK':
-            zone = self.info.work_zone
+        match zone:
+            case 'WORK':
+                zone = self.info.work_zone
+            case 'HOME':
+                zone = self.info.home_zone
+
         return self.scenario.sim.masks[zone][self.pos]
 
     def is_(self, status):
@@ -238,7 +240,7 @@ class SIRAgent(Agent):
                         self.set_task('EXIT')
                     elif not self.is_('QUARANTINED'):
                         self.status = Status.QUARANTINED
-                        self.set_task('EXIT')
+                        self.set_task('HOME')
                 if self.scenario.dt >= self.dt.recovery:
                     if not self.deceased:
                         self.status = Status.RECOVERED
@@ -299,10 +301,10 @@ class SIRAgent(Agent):
             self.pos = self.state.path.pop(0)
         elif self.in_('EXIT'):
             return
-        elif self.in_('WORK'):
+        elif self.in_('HOME'):
             pass
         elif self.random.rand() < 0.5:
-            self.set_task('WORK')
+            self.set_task('OPEN')
         else:
             self.set_task(wait=60 // self.scenario.sim.t_step)
 
