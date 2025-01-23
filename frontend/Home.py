@@ -1,9 +1,9 @@
 """
 Home page for the Streamlit app
 """
+
 # pylint: disable=invalid-name
 import streamlit as st
-
 from components.sidebar import default_sidebar
 
 st.set_page_config(page_title='Home', page_icon='static/neural.png')

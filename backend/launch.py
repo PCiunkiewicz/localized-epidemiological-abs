@@ -86,7 +86,7 @@ def run_sim(config, run_id=0, port=5556, save_dir='data/outputs', fast=True):
     )
 
     sim.launch()
-    print('\nSimulating...')
+    print('\nLoading Resources...')
     while not sim.stop_simulation.is_set():
         time.sleep(0.1)
     print('Terminating...')
@@ -126,6 +126,7 @@ parser.add_commands([run_sim, run_parallel])
 
 if __name__ == '__main__':
     # Uncomment one of these lines if you don't want to use CLI args
-    run_sim('data/run_configs/eng301.json', fast=False)
+    # run_sim('data/run_configs/eng301.json', fast=False)
+    run_sim('data/run_configs/bsf.json', fast=False, run_id='bsf_0')
     # run_sim_parallel('data/run_configs/eng301.json', 20)
     parser.dispatch()

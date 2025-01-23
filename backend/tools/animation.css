@@ -1,0 +1,20 @@
+.anim-controls {
+    position: fixed;
+    top: 1%;
+    left: 1%;
+    border: 3px solid #5f5f5f;
+    padding: 10px;
+    background-color: #f1f1f1;
+}
+.animation input[type=checkbox] {
+    display: none
+}
+.animation img {
+    transition: transform 0.25s ease;
+    cursor: zoom-in
+}
+.animation input[type=checkbox]:checked~img {
+    transform: scale(2);
+    transform-origin: top left;
+    cursor: zoom-out
+}

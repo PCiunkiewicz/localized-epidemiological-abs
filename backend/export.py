@@ -5,8 +5,7 @@ and gif animations.
 
 import time
 
-from argh import arg, ArghParser
-
+from argh import ArghParser, arg
 from tools.animation import AnimateSim
 from tools.snapshot import SnapshotSim
 from tools.stats import StatsSim, StatsSimComplete
@@ -14,13 +13,18 @@ from tools.stats import StatsSim, StatsSimComplete
 
 @arg('simfile', help='Path to the simulation output; example `data/outputs/simulation_0.hdf5`')
 @arg('mapfile', help='Path to the mapfile image; example `data/mapfiles/eng301.png`')
-def animation(simfile, mapfile, outfile='data/exports/animation.gif'):
+def animation(
+    simfile: str,
+    mapfile: str,
+    outfile: str = 'data/exports/animation.gif',
+    html: bool = False,
+):
     """
     Export simulation animation as gif.
     """
     print(f'Exporting {simfile} as animation...')
     start = time.perf_counter()
-    AnimateSim(simfile, mapfile).export(outfile)
+    AnimateSim(simfile, mapfile).export(outfile, html)
     print(f'Time elapsed: {time.perf_counter() - start}')
 
 
