@@ -7,10 +7,17 @@ creating new agent types for different models.
 import datetime as dt
 from abc import ABC, abstractmethod
 from bisect import bisect_left
+from collections import deque
+from random import random
 
 import numpy as np
 from simulation.scenario import VIRUS_SCALE, Scenario
 from simulation.types.agent import AgentSpec, AgentTime, Status
+
+SUSCEPTIBLE, INFECTED, RECOVERED, QUARANTINED, DECEASED, HOSPITALIZED, UNKNOWN = Status
+
+EXCLUDE = (QUARANTINED, HOSPITALIZED, DECEASED)
+CONTAGIOUS = (INFECTED, QUARANTINED, HOSPITALIZED)
 
 
 class Agent(ABC):  # TODO: Set up as abstract base class
@@ -41,46 +48,26 @@ class Agent(ABC):  # TODO: Set up as abstract base class
         self.state = spec.state
         self.info = spec.info
 
-        if self.is_('UNKNOWN'):
-            if self.random.rand() < self.scenario.virus.infection_rate:
-                self.status = Status.INFECTED
+        if self.is_(UNKNOWN):
+            if random() < self.scenario.virus.infection_rate:
+                self.state.status = INFECTED
             else:
-                self.status = Status.SUSCEPTIBLE
+                self.state.status = SUSCEPTIBLE
 
         if self.info.start_zone:
-            self.pos = self.scenario.get_idx(self.info.start_zone)
-
-    @property
-    def status(self) -> Status:
-        return self.state.status
-
-    @status.setter
-    def status(self, value: Status) -> None:
-        self.state.status = value
+            self.state.pos = self.scenario.get_idx(self.info.start_zone)
 
     @property
     def dt(self) -> AgentTime:
         return self.state.dt
 
-    @property
-    def pos(self) -> tuple[int, int]:
-        return self.state.x, self.state.y, self.state.z
-
-    @pos.setter
-    def pos(self, value: tuple[int, int]) -> None:
-        self.state.x, self.state.y, self.state.z = value
-
     def check_schedule(self):
         """
         Checks whether a task is scheduled for the current time.
         """
-        if self.is_('QUARANTINED') or self.is_('HOSPITALIZED') or self.is_('DECEASED'):
-            return  # TODO: fix hospitalization behaviour
-
-        now = self.scenario.dt.strftime('%H:%M')
-        action = self.info.schedule.get(now)
-        if action and self.dt.last_action_time != now:
-            self.dt.last_action_time = now
+        action = self.info.schedule.get(self.scenario.now)
+        if action and self.dt.last_action_time != self.scenario.now:
+            self.dt.last_action_time = self.scenario.now
             self.set_task(action)
 
     def set_task(self, zone=None, wait=0):
@@ -88,7 +75,7 @@ class Agent(ABC):  # TODO: Set up as abstract base class
         Defines a new task / path for the Agent
         """
         if wait > 0:
-            self.state.path = [self.pos] * wait
+            self.state.path = deque([self.state.pos] * wait)
         elif zone is not None:
             match zone:
                 case 'WORK':
@@ -104,7 +91,7 @@ class Agent(ABC):  # TODO: Set up as abstract base class
             else:
                 wait_time = 3600 // self.scenario.sim.t_step  # seconds
 
-            wait_time = int(wait_time * (1 + self.random.rand()) * 0.5)
+            wait_time = int(wait_time * (1 + random()) * 0.5)
             self.state.path += [self.state.path[-1]] * wait_time
 
     def pathfind(self, idx):
@@ -117,15 +104,7 @@ class Agent(ABC):  # TODO: Set up as abstract base class
         idx : (int, int, int)
             `(x,y,z)` coordinate tuple to path to from the current Agent position
         """
-        x1, y1, z1 = self.pos
-        x2, y2, z2 = idx
-        start = self.scenario.world.grids[z1].node(x1, y1)
-        end = self.scenario.world.grids[z2].node(x2, y2)
-
-        for grid in self.scenario.world.grids.values():
-            grid.cleanup()
-
-        self.state.path, _ = self.scenario.finder.find_path(start, end, self.scenario.world)
+        self.state.path = self.scenario.graph.pathfind(self.state.pos, idx)
 
     def in_(self, zone):
         """
@@ -137,13 +116,13 @@ class Agent(ABC):  # TODO: Set up as abstract base class
             case 'HOME':
                 zone = self.info.home_zone
 
-        return self.scenario.sim.masks[zone][self.pos]
+        return self.scenario.sim.masks[zone][self.state.pos]
 
     def is_(self, status):
         """
         Check whether agent status is `status`.
         """
-        return self.status is Status[status]
+        return self.state.status is status
 
     @abstractmethod
     def move(self):
@@ -206,44 +185,43 @@ class SIRAgent(Agent):
         """
         Simulates the possibility of a Agent recovering from infection
         """
-        if self.contagious():
-            if not self.dt.recovery:
-                now = self.scenario.dt
-                # days before showing symptoms
-                if self.random.rand() < 0.17:  # TODO: Move this to scenario config
-                    n_days_q = 100  # shows asymptomatic Agents not quarantining
-                else:
-                    n_days_q = self.random.lognormal(*self.dist['presymptomatic'])
-                # days before recovery
-                if self.random.rand() < 0.02:  # TODO: Move this to scenario config
-                    n_days_r = -1  # shows Agent dying - find a better way to do this
-                    n_days_q = self.random.lognormal(*self.dist['presymptomatic'])
-                    self.deceased = True
-                elif self.random.rand() < 0.30 * self.severity:  # TODO: Move this to scenario config
-                    n_days_r = self.random.lognormal(*self.dist['severe'])  # severe infection
-                    n_days_q = self.random.lognormal(*self.dist['presymptomatic'])
-                    self.hospitalized = True
-                else:
-                    n_days_r = self.random.lognormal(*self.dist['mild'])  # mild/moderate infection
-                if self.random.rand() < 0.16:  # TODO: Move this to scenario config
-                    n_days_r *= 3  # long-covid
-                    self.long_covid = True
-                self.dt.recovery = now + dt.timedelta(days=n_days_r)
-                self.dt.quarantine = now + dt.timedelta(days=n_days_q)
+        if not self.dt.recovery:
+            now = self.scenario.dt
+            # days before showing symptoms
+            if random() < 0.17:  # TODO: Move this to scenario config
+                n_days_q = 100  # shows asymptomatic Agents not quarantining
             else:
-                if self.scenario.dt >= self.dt.quarantine:
-                    if self.hospitalized:
-                        self.status = Status.HOSPITALIZED
-                        self.set_task('EXIT')
-                    elif self.deceased:
-                        self.status = Status.DECEASED
-                        self.set_task('EXIT')
-                    elif not self.is_('QUARANTINED'):
-                        self.status = Status.QUARANTINED
-                        self.set_task('HOME')
-                if self.scenario.dt >= self.dt.recovery:
-                    if not self.deceased:
-                        self.status = Status.RECOVERED
+                n_days_q = self.random.lognormal(*self.dist['presymptomatic'])
+            # days before recovery
+            if random() < 0.02:  # TODO: Move this to scenario config
+                n_days_r = -1  # shows Agent dying - find a better way to do this
+                n_days_q = self.random.lognormal(*self.dist['presymptomatic'])
+                self.deceased = True
+            elif random() < 0.30 * self.severity:  # TODO: Move this to scenario config
+                n_days_r = self.random.lognormal(*self.dist['severe'])  # severe infection
+                n_days_q = self.random.lognormal(*self.dist['presymptomatic'])
+                self.hospitalized = True
+            else:
+                n_days_r = self.random.lognormal(*self.dist['mild'])  # mild/moderate infection
+            if random() < 0.16:  # TODO: Move this to scenario config
+                n_days_r *= 3  # long-covid
+                self.long_covid = True
+            self.dt.recovery = now + dt.timedelta(days=n_days_r)
+            self.dt.quarantine = now + dt.timedelta(days=n_days_q)
+        else:
+            if self.scenario.dt >= self.dt.quarantine:
+                if self.hospitalized:
+                    self.state.status = HOSPITALIZED
+                    self.set_task('EXIT')
+                elif self.deceased:
+                    self.state.status = DECEASED
+                    self.set_task('EXIT')
+                elif not self.is_(QUARANTINED):
+                    self.state.status = QUARANTINED
+                    self.set_task('HOME')
+            if self.scenario.dt >= self.dt.recovery:
+                if not self.deceased:
+                    self.state.status = RECOVERED
 
     def _prevention_index(self) -> float:
         """
@@ -259,55 +237,52 @@ class SIRAgent(Agent):
         """
         Set agent status to infected.
         """
-        if self.random.rand() > self.prevention_index:
-            self.status = Status.INFECTED
+        if random() > self.prevention_index:
+            self.state.status = INFECTED
             self.infected = True
         else:
             return
 
-    def contagious(self):
-        """
-        Check whether agent status is contagious.
-        """
-        return self.is_('INFECTED') or self.is_('QUARANTINED') or self.is_('HOSPITALIZED')
-
-    def droplet_expose(self):
+    def droplet_expose(self, virus_level):
         """
         Simulates infection due to residue disease in the air
         """
-        if self.is_('SUSCEPTIBLE'):
-            atk = self.scenario.virus.attack_rate
-            v_scale = self.scenario.virus_level(*self.pos) / VIRUS_SCALE
-            t_scale = self.scenario.sim.t_step / 3600  # per hour
-            if self.random.rand() < (atk * v_scale * t_scale * self.susceptibility):
-                self.infect()
+        atk = self.scenario.virus.attack_rate
+        v_scale = virus_level / VIRUS_SCALE
+        t_scale = self.scenario.sim.t_step / 3600  # per hour
+        if random() < (atk * v_scale * t_scale * self.susceptibility):
+            self.infect()
 
     def droplet_spread(self):
         """
         Causes the area currently occupied by the Agent to be at risk of disease
         """
-        if self.contagious():
-            viral_load = VIRUS_SCALE * (1 - self.prevention_index)
-            self.scenario.contaminate(*self.pos, viral_load)
+        viral_load = VIRUS_SCALE * (1 - self.prevention_index)
+        self.scenario.contaminate(*self.state.pos, viral_load)
 
     def move(self, trivial=False):
         """
         Movement decision making for the Agent
         """
-        self.recover()
-        self.check_schedule()
+        if self.state.status in CONTAGIOUS:
+            self.recover()
+        if (self.state.status not in EXCLUDE) and self.scenario.check_schedule:
+            self.check_schedule()
 
         if self.state.path:
-            self.pos = self.state.path.pop(0)
+            self.state.pos = self.state.path.popleft()
         elif self.in_('EXIT'):
             return
         elif self.in_('HOME'):
             pass
-        elif self.random.rand() < 0.5:
+        elif random() < 0.5:
             self.set_task('OPEN')
         else:
             self.set_task(wait=60 // self.scenario.sim.t_step)
 
         if not trivial:
-            self.droplet_expose()
-            self.droplet_spread()
+            if self.is_(SUSCEPTIBLE):
+                if (virus_level := self.scenario.virus_level(*self.state.pos)) > 1:
+                    self.droplet_expose(virus_level)
+            elif self.state.status in CONTAGIOUS:
+                self.droplet_spread()

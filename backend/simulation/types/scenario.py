@@ -81,6 +81,8 @@ class SimSetup:
             if terrain.name in ['WALL', 'DOOR', 'STAIRS', 'EXIT']:
                 self.masks['BARRIER'] |= mask
 
+        self.mask_idxs = {k: np.argwhere(v) for k, v in self.masks.items()}
+
 
 @dataclass
 class PreventionIndex:

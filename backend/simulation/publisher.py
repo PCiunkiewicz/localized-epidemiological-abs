@@ -7,19 +7,16 @@ of numpy arrays without pickling the Python objects.
 
 import time
 
-import zmq
 import numpy as np
+import zmq
 
 
 def send_array(socket, A, flags=0, copy=True, track=False):
     """
     Send a numpy array with metadata.
     """
-    metadata = {
-        'dtype': str(A.dtype),
-        'shape': A.shape
-    }
-    socket.send_json(metadata, flags|zmq.SNDMORE)
+    metadata = {'dtype': str(A.dtype), 'shape': A.shape}
+    socket.send_json(metadata, flags | zmq.SNDMORE)
     return socket.send(A, flags, copy=copy, track=track)
 
 
@@ -49,7 +46,7 @@ def publisher(queue, event, port):
     """
     context = zmq.Context()
     with context.socket(zmq.PUB) as socket:
-        socket.bind(f"tcp://*:{port}")
+        socket.bind(f'tcp://*:{port}')
         socket.setsockopt(zmq.SNDHWM, 0)
         while not event.is_set():
             while not queue.empty():
@@ -59,5 +56,5 @@ def publisher(queue, event, port):
                     send_array(socket, data['data'])
                 else:
                     socket.send_pyobj(data['data'])
-            # time.sleep(0.001)  # Sleeps 1 milliseconds to be polite with the CPU
+            time.sleep(0.001)  # Sleeps 1 milliseconds to be polite with the CPU
         time.sleep(1)

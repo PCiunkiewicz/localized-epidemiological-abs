@@ -11,9 +11,11 @@ from pathlib import Path
 from threading import Thread
 
 import numpy as np
+import yappi
 from argh import ArghParser, arg
 from dask.distributed import Client, LocalCluster
 from simulation.model import SIRModel, simulate_model
+from simulation.pathing import GraphGrid, OptimizedPathfinder
 from simulation.publisher import publisher
 from simulation.writer import save_agents, save_agents_fast
 
@@ -112,10 +114,11 @@ def run_parallel(config, runs=4, offset=0, base_port=5556, save_dir='data/output
             n_workers=n_jobs,
             processes=True,
             threads_per_worker=1,
-            memory_limit='1GB',
+            memory_limit='2GB',
         ) as cluster,
         Client(cluster) as client,
     ):
+        print(client.dashboard_link)
         res = client.map(_run_args, args)
         client.gather(res)
 
@@ -127,6 +130,27 @@ parser.add_commands([run_sim, run_parallel])
 if __name__ == '__main__':
     # Uncomment one of these lines if you don't want to use CLI args
     # run_sim('data/run_configs/eng301.json', fast=False)
-    run_sim('data/run_configs/bsf.json', fast=False, run_id='bsf_0')
-    # run_sim_parallel('data/run_configs/eng301.json', 20)
+    # yappi.start()
+    # run_sim('data/run_configs/bsf.json', fast=True, run_id='bsf_1')
+    # yappi.stop()
+    # yappi.get_thread_stats().print_all()
+    # print('=' * 50)
+    # threads = yappi.get_thread_stats()
+    # for thread in threads:
+    #     if thread.id == 0:
+    #         continue
+    #     print('Function stats for (%s) (%d)' % (thread.name, thread.id))  # it is the Thread.__class__.__name__
+    #     yappi.get_func_stats(
+    #         ctx_id=thread.id,
+    #         filter_callback=lambda x: '/backend/' in x.full_name or '/site-packages/' in x.full_name,
+    #     ).print_all(
+    #         columns={
+    #             0: ('name', 80),
+    #             1: ('ncall', 8),
+    #             2: ('tsub', 8),
+    #             3: ('ttot', 8),
+    #             4: ('tavg', 8),
+    #         }
+    #     )
+    run_parallel('data/run_configs/bsf.json', 16)
     parser.dispatch()

@@ -15,9 +15,11 @@ from abc import ABC, abstractmethod
 import numpy as np
 from simulation.agent import Agent, SIRAgent
 from simulation.scenario import Scenario, SIRScenario
-from simulation.types.agent import AgentSpec
+from simulation.types.agent import AgentSpec, Status
 from simulation.types.scenario import ScenarioSpec
 from tqdm import tqdm
+
+SUSCEPTIBLE, INFECTED, RECOVERED, QUARANTINED, DECEASED, HOSPITALIZED, UNKNOWN = Status
 
 
 class Model(ABC):
@@ -62,7 +64,7 @@ class Model(ABC):
         """
         ret = []
         for p in self.population:
-            ret.append((*p.pos, p.status.value))
+            ret.append((*p.state.pos, p.state.status.value))
         return np.array(ret)
 
     @abstractmethod
@@ -128,10 +130,15 @@ class SIRModel(Model):
             if not self.trivial:
                 self.scenario.ventilate()
 
-        self.scenario.dt += dt.timedelta(seconds=self.sim.t_step * self.sim.save_resolution)
-        if self.scenario.dt.time().hour >= 19:
-            self.scenario.dt += dt.timedelta(hours=12)
-            self.scenario.virus.matrix[:] = 0
+            self.scenario.dt += dt.timedelta(seconds=self.sim.t_step)
+            # if self.scenario.dt.time().hour >= 19:
+            #     self.scenario.dt += dt.timedelta(hours=12)
+            #     self.scenario.virus.matrix[:] = 0
+
+            now = self.scenario.dt.strftime('%H:%M')
+            self.scenario.check_schedule = self.scenario.now != now
+            if self.scenario.check_schedule:
+                self.scenario.now = now
 
     def simulate(self, queue, event):
         print('Simulating...')
@@ -139,7 +146,7 @@ class SIRModel(Model):
         model_time = 0
         start_time = time.perf_counter()
 
-        if all(p.is_('SUSCEPTIBLE') for p in self.population):
+        if all(p.is_(SUSCEPTIBLE) for p in self.population):
             self.trivial = True
             print('TRIVIAL')
 
@@ -184,7 +191,7 @@ class SIRModel(Model):
 
         print('-' * 50)
         try:
-            print(f'Avg iter time: {(time.perf_counter()-start_time) / n_iter}')
+            print(f'Avg iter time: {(time.perf_counter() - start_time) / n_iter}')
             print(f'Avg model cycle time: {model_time / n_iter}')
             print(f'Avg simulation step time: {model_time / n_iter / self.sim.save_resolution}')
         except ZeroDivisionError:
@@ -196,13 +203,20 @@ class SIRModel(Model):
         model_time = 0
         start_time = time.perf_counter()
 
-        if all(p.is_('SUSCEPTIBLE') for p in self.population):
+        if all(p.is_(SUSCEPTIBLE) for p in self.population):
             self.trivial = True
             print('TRIVIAL')
 
         data = {'timesteps': [], 'agents': []}
 
+        pbar = tqdm(
+            desc='Timesteps',
+            total=self.sim.max_iter * self.sim.save_resolution,
+            unit='step',
+        )
+
         while n_iter < self.sim.max_iter:
+            pbar.update(self.sim.save_resolution)
             n_iter += 1
             start = time.perf_counter()
             self.model_step()
@@ -210,6 +224,7 @@ class SIRModel(Model):
             data['timesteps'].append(self.scenario.dt.timestamp())
             data['agents'].append(self.get_agents())
 
+        pbar.close()
         event.set()
         queue.put({'topic': 'timesteps', 'data': np.array(data['timesteps'])})
         queue.put({'topic': 'agents', 'data': np.array(data['agents'])})
@@ -221,7 +236,7 @@ class SIRModel(Model):
         print(f'Total simulation time: {model_time}')
 
         try:
-            print(f'Avg iter time: {(time.perf_counter()-start_time) / n_iter}')
+            print(f'Avg iter time: {(time.perf_counter() - start_time) / n_iter}')
             print(f'Avg model cycle time: {model_time / n_iter}')
         except ZeroDivisionError:
             pass

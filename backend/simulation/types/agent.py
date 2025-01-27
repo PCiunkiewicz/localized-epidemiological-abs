@@ -5,6 +5,7 @@ typing is supported.
 """
 
 import datetime as dt
+from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
@@ -50,11 +51,9 @@ class AgentTime:
 @dataclass
 class AgentState:
     dt: Optional[AgentTime]
-    status: Status | str = Status.UNKNOWN
-    x: int = 0
-    y: int = 0
-    z: int = 0
-    path: list[tuple[int, int]] = field(default_factory=list)
+    status: Status | str | int = Status.UNKNOWN
+    pos: tuple[int, int, int] = (0, 0, 0)
+    path: deque[tuple[int, int]] = field(default_factory=deque)
 
     def __post_init__(self):
         if isinstance(self.status, str):
