@@ -12,6 +12,7 @@ import json
 import time
 from abc import ABC, abstractmethod
 
+import h5py
 import numpy as np
 from simulation.agent import Agent, SIRAgent
 from simulation.scenario import Scenario, SIRScenario
@@ -198,10 +199,9 @@ class SIRModel(Model):
             pass
         print('=' * 50)
 
-    def simulate_fast(self, queue, event):
+    def simulate_fast(self, filename, event):
         n_iter = 0
         model_time = 0
-        start_time = time.perf_counter()
 
         if all(p.is_(SUSCEPTIBLE) for p in self.population):
             self.trivial = True
@@ -226,21 +226,11 @@ class SIRModel(Model):
 
         pbar.close()
         event.set()
-        queue.put({'topic': 'timesteps', 'data': np.array(data['timesteps'])})
-        queue.put({'topic': 'agents', 'data': np.array(data['agents'])})
-        queue.put({'topic': 'agent_info', 'data': self.summarize_agent_info()})
-        queue.put({'topic': '', 'data': 'stop'})
 
-        print('\n' + '=' * 50)
-        print(f'Total iterations: {n_iter}')
-        print(f'Total simulation time: {model_time}')
-
-        try:
-            print(f'Avg iter time: {(time.perf_counter() - start_time) / n_iter}')
-            print(f'Avg model cycle time: {model_time / n_iter}')
-        except ZeroDivisionError:
-            pass
-        print('=' * 50)
+        with h5py.File(filename, 'w') as f:
+            f.create_dataset('agents', data=data['agents'], compression='gzip', compression_opts=9)
+            f.create_dataset('agent_info', data=self.summarize_agent_info(), compression='gzip', compression_opts=9)
+            f.create_dataset('timesteps', data=data['timesteps'], compression='gzip', compression_opts=9)
 
 
 def simulate_model(ModelClass: type, config: str, queue, event, fast=True):

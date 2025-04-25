@@ -42,7 +42,7 @@ class Agent(ABC):  # TODO: Set up as abstract base class
             Agent likelihood to progress to objective, domain [0, 1].
     """
 
-    def __init__(self, scenario: Scenario, spec: AgentSpec):
+    def __init__(self, scenario: Scenario, spec: AgentSpec) -> None:
         self.scenario = scenario
         self.random = np.random.RandomState()
         self.state = spec.state
@@ -87,7 +87,7 @@ class Agent(ABC):  # TODO: Set up as abstract base class
             self.pathfind(idx)
 
             if zone == 'OPEN':
-                wait_time = 120 // self.scenario.sim.t_step  # seconds
+                wait_time = 300 // self.scenario.sim.t_step  # seconds
             else:
                 wait_time = 3600 // self.scenario.sim.t_step  # seconds
 
@@ -243,7 +243,7 @@ class SIRAgent(Agent):
         else:
             return
 
-    def droplet_expose(self, virus_level):
+    def _droplet_expose(self, virus_level):
         """
         Simulates infection due to residue disease in the air
         """
@@ -253,7 +253,7 @@ class SIRAgent(Agent):
         if random() < (atk * v_scale * t_scale * self.susceptibility):
             self.infect()
 
-    def droplet_spread(self):
+    def _droplet_spread(self):
         """
         Causes the area currently occupied by the Agent to be at risk of disease
         """
@@ -274,15 +274,15 @@ class SIRAgent(Agent):
         elif self.in_('EXIT'):
             return
         elif self.in_('HOME'):
-            pass
+            self.set_task(wait=300 // self.scenario.sim.t_step)
         elif random() < 0.5:
             self.set_task('OPEN')
         else:
-            self.set_task(wait=60 // self.scenario.sim.t_step)
+            self.set_task(wait=300 // self.scenario.sim.t_step)
 
         if not trivial:
             if self.is_(SUSCEPTIBLE):
                 if (virus_level := self.scenario.virus_level(*self.state.pos)) > 1:
-                    self.droplet_expose(virus_level)
+                    self._droplet_expose(virus_level)
             elif self.state.status in CONTAGIOUS:
-                self.droplet_spread()
+                self._droplet_spread()

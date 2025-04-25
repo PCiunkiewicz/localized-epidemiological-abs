@@ -10,12 +10,11 @@ from multiprocessing import Event, Queue, cpu_count
 from pathlib import Path
 from threading import Thread
 
-import numpy as np
+import dask
 import yappi
 from argh import ArghParser, arg
 from dask.distributed import Client, LocalCluster
 from simulation.model import SIRModel, simulate_model
-from simulation.pathing import GraphGrid, OptimizedPathfinder
 from simulation.publisher import publisher
 from simulation.writer import save_agents, save_agents_fast
 
@@ -80,46 +79,61 @@ def run_sim(config, run_id=0, port=5556, save_dir='data/outputs', fast=True):
     Path(save_dir).mkdir(exist_ok=True)
     start = time.perf_counter()
 
-    sim = SimController(
-        Path(config),
-        port=port,
-        outfile=Path(f'{save_dir}/simulation_{run_id}.hdf5'),
-        fast=fast,
-    )
+    if fast:
+        model = SIRModel(config)
+        outfile = Path(f'{save_dir}/simulation_{run_id}.hdf5')
+        run_sim_fast(outfile, model)
 
-    sim.launch()
-    print('\nLoading Resources...')
-    while not sim.stop_simulation.is_set():
+    else:
+        sim = SimController(
+            Path(config),
+            port=port,
+            outfile=Path(f'{save_dir}/simulation_{run_id}.hdf5'),
+            fast=fast,
+        )
+
+        sim.launch()
+        print('\nLoading Resources...')
+        while not sim.stop_simulation.is_set():
+            time.sleep(0.1)
+        print('Terminating...')
+        sim.terminate()
+        print(f'Final run time: {time.perf_counter() - start}\n')
+
+
+def run_sim_fast(outfile, model):
+    stop_simulation = Event()
+    model.simulate_fast(outfile, stop_simulation)
+
+    while not stop_simulation.is_set():
         time.sleep(0.1)
-    print('Terminating...')
-    sim.terminate()
-    print(f'Final run time: {time.perf_counter() - start}\n')
-
-
-def _run_args(args):
-    run_sim(*args)
 
 
 @arg('config', help='Path to the config file; example `data/run_configs/eng301.json`')
-def run_parallel(config, runs=4, offset=0, base_port=5556, save_dir='data/outputs', n_jobs=8):
+def run_parallel(config, runs=4, offset=0, save_dir='data/outputs', n_jobs=8):
     # if not n_jobs:
     #     n_jobs = max(cpu_count() - 1, 1)
 
-    run_ids = range(offset, runs + offset)
-    ports = np.arange(runs) % PORT_RANGE + base_port
-    args = [(config, run_id, port, save_dir) for run_id, port in zip(run_ids, ports)]
+    filenames = [Path(f'{save_dir}/simulation_{run}.hdf5') for run in range(offset, runs + offset)]
+    # args = [[model, outfile] for outfile in filenames]
 
     with (
         LocalCluster(
             n_workers=n_jobs,
             processes=True,
             threads_per_worker=1,
-            memory_limit='2GB',
+            memory_limit='4GB',
         ) as cluster,
-        Client(cluster) as client,
+        Client(cluster, direct_to_workers=True) as client,
     ):
         print(client.dashboard_link)
-        res = client.map(_run_args, args)
+        model = client.scatter(
+            SIRModel(config),
+            direct=True,
+            hash=False,
+            broadcast=True,
+        )
+        res = client.map(run_sim_fast, filenames, model=model, actor=True)
         client.gather(res)
 
 
@@ -130,27 +144,25 @@ parser.add_commands([run_sim, run_parallel])
 if __name__ == '__main__':
     # Uncomment one of these lines if you don't want to use CLI args
     # run_sim('data/run_configs/eng301.json', fast=False)
-    # yappi.start()
-    # run_sim('data/run_configs/bsf.json', fast=True, run_id='bsf_1')
-    # yappi.stop()
-    # yappi.get_thread_stats().print_all()
-    # print('=' * 50)
-    # threads = yappi.get_thread_stats()
-    # for thread in threads:
-    #     if thread.id == 0:
-    #         continue
-    #     print('Function stats for (%s) (%d)' % (thread.name, thread.id))  # it is the Thread.__class__.__name__
-    #     yappi.get_func_stats(
-    #         ctx_id=thread.id,
-    #         filter_callback=lambda x: '/backend/' in x.full_name or '/site-packages/' in x.full_name,
-    #     ).print_all(
-    #         columns={
-    #             0: ('name', 80),
-    #             1: ('ncall', 8),
-    #             2: ('tsub', 8),
-    #             3: ('ttot', 8),
-    #             4: ('tavg', 8),
-    #         }
-    #     )
-    run_parallel('data/run_configs/bsf.json', 16)
-    parser.dispatch()
+    yappi.start()
+    run_sim('data/run_configs/bsf.json', fast=True, run_id='bsf_1')
+    yappi.stop()
+    yappi.get_thread_stats().print_all()
+    print('=' * 50)
+    threads = yappi.get_thread_stats()
+    for thread in threads:
+        print('Function stats for (%s) (%d)' % (thread.name, thread.id))  # it is the Thread.__class__.__name__
+        yappi.get_func_stats(
+            ctx_id=thread.id,
+            filter_callback=lambda x: '/backend/' in x.full_name,  # or '/site-packages/' in x.full_name,
+        ).print_all(
+            columns={
+                0: ('name', 80),
+                1: ('ncall', 8),
+                2: ('tsub', 8),
+                3: ('ttot', 8),
+                4: ('tavg', 8),
+            }
+        )
+    # run_parallel('data/run_configs/bsf.json', 16)
+    # parser.dispatch()

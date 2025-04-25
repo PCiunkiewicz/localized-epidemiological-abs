@@ -70,7 +70,12 @@ class SimSetup:
         self.masks['BARRIER'] = np.zeros(self.shape, dtype=bool)
 
         for terrain in self.terrain:
-            mask = mask_color(img, terrain.value)
+            if terrain.name[-1].isdigit():
+                floor = int(terrain.name[-3])
+                mask = np.zeros(self.shape, dtype=bool)
+                mask[:, :, floor] = mask_color(img[:, :, floor, :], terrain.value)
+            else:
+                mask = mask_color(img, terrain.value)
             self.masks[terrain.name] = mask
 
             if terrain.restricted or not terrain.walkable:
