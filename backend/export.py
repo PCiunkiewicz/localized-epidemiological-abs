@@ -1,72 +1,56 @@
-"""
-This Python script generates exported snapshots
-and gif animations.
-"""
+"""Generate export snapshots, statistics, and animations."""
 
 import time
+from pathlib import Path
 
-from argh import ArghParser, arg
-from tools.animation import AnimateSim
-from tools.snapshot import SnapshotSim
-from tools.stats import StatsSim, StatsSimComplete
+from argh import ArghParser, arg  # TODO: replace with prompt_toolkit for better CLI
+
+from tools.animation import SimAnimation
+from tools.snapshot import SimSnapshot
+from tools.stats import ExcessRiskVsTime
+from utilities.logging import configure_logger
+from utilities.paths import EXPORTS
 
 
 @arg('simfile', help='Path to the simulation output; example `data/outputs/simulation_0.hdf5`')
 @arg('mapfile', help='Path to the mapfile image; example `data/mapfiles/eng301.png`')
 def animation(
-    simfile: str,
-    mapfile: str,
-    outfile: str = 'data/exports/animation.gif',
+    simfile: Path,
+    mapfile: Path,
+    outfile: Path = EXPORTS / 'animation.gif',
     html: bool = False,
-):
-    """
-    Export simulation animation as gif.
-    """
+) -> None:
+    """Export simulation animation as gif."""
     print(f'Exporting {simfile} as animation...')
     start = time.perf_counter()
-    AnimateSim(simfile, mapfile).export(outfile, html)
+    SimAnimation(simfile, mapfile).export(outfile, html)
     print(f'Time elapsed: {time.perf_counter() - start}')
 
 
 @arg('simfile', help='Path to the simulation output; example `data/outputs/simulation_0.hdf5`')
 @arg('mapfile', help='Path to the mapfile image; example `data/mapfiles/eng301.png`')
-def snapshot(simfile, mapfile, frame=0, outfile='data/exports/snapshot.png'):
-    """
-    Export simulation frame as image.
-    """
+def snapshot(simfile: Path, mapfile: Path, frame: int = 0, outfile: Path = EXPORTS / 'snapshot.png') -> None:
+    """Export simulation frame as image."""
     print(f'Exporting {simfile} frame {frame}...')
     start = time.perf_counter()
-    SnapshotSim(simfile, mapfile).export(frame, outfile)
+    SimSnapshot(simfile, mapfile).export(frame, outfile)
     print(f'Time elapsed: {time.perf_counter() - start}')
 
 
 @arg('config', help='Path to the simulation config; example `data/run_configs/eng301.json`')
-@arg('runs', help='Number of simulation runs in outputs directory')
-def stats(config, runs, outfile='data/exports/stats.png'):
-    """
-    Export simulation stats as image.
-    """
-    print(f'Exporting {config} stats...')
+@arg('results_path', help='Simulation outputs path; example `data/outputs-nomask-novax`')
+def excess_risk(config: Path, results_path: Path, outfile: Path = EXPORTS / 'excess_risk.png') -> None:
+    """Export simulation stats as image."""
+    print(f'Exporting {config} stats for {results_path}...')
     start = time.perf_counter()
-    StatsSim(config, int(runs)).export(outfile)
-    print(f'Time elapsed: {time.perf_counter() - start}')
-
-
-@arg('config', help='Path to the simulation config; example `data/run_configs/eng301.json`')
-@arg('output_path', help='Simulation outputs path; example `data/outputs-nomask-novax`')
-def stats2(config, output_path, flat=0):
-    """
-    Export simulation stats as image.
-    """
-    print(f'Exporting {config} stats for {output_path}...')
-    start = time.perf_counter()
-    StatsSimComplete(config, output_path, int(flat)).export()
+    ExcessRiskVsTime(config, results_path).export(outfile)
     print(f'Time elapsed: {time.perf_counter() - start}')
 
 
 parser = ArghParser()
-parser.add_commands([animation, snapshot, stats, stats2])
+parser.add_commands([animation, snapshot, excess_risk])
 
 
 if __name__ == '__main__':
+    configure_logger('TRACE')
     parser.dispatch()

@@ -1,168 +1,153 @@
-"""
-This Python script runs the simulation. Currently parameters
-are just hardcoded in the file but we can set it up to take
-command-line arguments for things like simulation time or
-file output location.
-"""
+"""Simulation manual run entrypoint."""
 
-import time
-from multiprocessing import Event, Queue, cpu_count
+import pickle
+import tempfile
+from multiprocessing import Event, Queue
+from multiprocessing.synchronize import Event as EventType
 from pathlib import Path
-from threading import Thread
 
-import dask
-import yappi
-from argh import ArghParser, arg
+from argh import arg
 from dask.distributed import Client, LocalCluster
-from simulation.model import SIRModel, simulate_model
+from distributed import Future
+from loguru import logger
+
+# from utilities.profiling import profile, profiling_filter
+from simulation.model.base import simulate_model
+from simulation.model.sir import SIRModel
 from simulation.publisher import publisher
 from simulation.writer import save_agents, save_agents_fast
+from utilities.logging import configure_logger
+from utilities.paths import CFG, OUTPUTS, TEMP
+from utilities.thread import PublisherThread, SimulationThread, WriterThread
 
 PORT_RANGE = 100
 
 
-class SimController(object):
-    """
-    Controller object adapted from code required for frontend
-    execution. Can be converted to a set of functions or moved to
-    a dedicated Python module or into the `model` module later.
-    """
+class SimController:
+    """Simulation threading controller."""
 
-    def __init__(self, config, port=5556, outfile=None, fast=True):
+    def __init__(self, config: Path, port: int = 5556, outfile: Path = None, fast: bool = True) -> None:
+        """Initialize the simulation controller.
+
+        Args:
+            config: Path to the simulation config file.
+            port: Port for the publisher thread.
+            outfile: Path to the output file.
+            fast: Whether to run the simulation in fast mode.
+        """
         super().__init__()
         self.pub_queue = Queue()
-        self.stop_publisher = Event()
-        self.stop_simulation = Event()
+        self.stop_pub: EventType = Event()
+        self.stop_sim: EventType = Event()
         method = save_agents_fast if fast else save_agents
 
-        self.publisher_process = Thread(
-            target=publisher,
-            args=(
-                self.pub_queue,
-                self.stop_publisher,
-                port,
-            ),
+        self.publisher = PublisherThread(target=publisher, args=(self.pub_queue, self.stop_pub, port))
+        self.simulation = SimulationThread(
+            target=simulate_model, args=(SIRModel, config, self.pub_queue, self.stop_sim, fast)
         )
-        self.simulation_process = Thread(
-            target=simulate_model,
-            args=(
-                SIRModel,
-                config,
-                self.pub_queue,
-                self.stop_simulation,
-                fast,
-            ),
-        )
-        self.writer_process = Thread(
-            target=method,
-            args=(
-                port,
-                outfile,
-            ),
-        )
+        self.writer = WriterThread(target=method, args=(port, outfile))
 
-    def launch(self):
-        self.publisher_process.start()
-        self.simulation_process.start()
-        self.writer_process.start()
+    def launch(self) -> None:
+        """Launch the simulation and publisher/writer threads."""
+        self.publisher.start()
+        self.simulation.start()
+        self.writer.start()
 
-    def terminate(self):
+    def terminate(self) -> None:
+        """Terminate the simulation and publisher/writer threads."""
         # self.stop_simulation.set()
-        self.writer_process.join()
-        self.simulation_process.join()
-        self.stop_publisher.set()
-        self.publisher_process.join()
+        self.writer.join()
+        self.simulation.join()
+        self.stop_pub.set()
+        self.publisher.join()
 
 
 @arg('config', help='Path to the config file; example `data/run_configs/eng301.json`')
-def run_sim(config, run_id=0, port=5556, save_dir='data/outputs', fast=True):
+def run_sim(config: Path, run_id: int = 0, port: int = 5556, save_dir: Path = OUTPUTS) -> None:
+    """Run the simulation.
+
+    Args:
+        config: Path to the simulation config file.
+        run_id: ID for the simulation run.
+        port: Port for the publisher thread.
+        save_dir: Directory to save the simulation output.
+    """
     Path(save_dir).mkdir(exist_ok=True)
-    start = time.perf_counter()
 
-    if fast:
-        model = SIRModel(config)
-        outfile = Path(f'{save_dir}/simulation_{run_id}.hdf5')
-        run_sim_fast(outfile, model)
+    sim = SimController(
+        Path(config),
+        port=port,
+        outfile=Path(f'{save_dir}/simulation_{run_id}.hdf5'),
+        fast=False,
+    )
 
-    else:
-        sim = SimController(
-            Path(config),
-            port=port,
-            outfile=Path(f'{save_dir}/simulation_{run_id}.hdf5'),
-            fast=fast,
-        )
-
-        sim.launch()
-        print('\nLoading Resources...')
-        while not sim.stop_simulation.is_set():
-            time.sleep(0.1)
-        print('Terminating...')
-        sim.terminate()
-        print(f'Final run time: {time.perf_counter() - start}\n')
+    sim.launch()
+    sim.stop_sim.wait()
+    sim.terminate()
 
 
-def run_sim_fast(outfile, model):
+def run_sim_fast(outfile: Path, model: SIRModel | Path) -> None:
+    """Run the simulation in fast mode.
+
+    Args:
+        outfile: Path to the output file.
+        model: The simulation model or path to tempfile model artifact.
+    """
+    if isinstance(model, Path):
+        with open(model, 'rb') as f:
+            model = pickle.load(f)
+
     stop_simulation = Event()
     model.simulate_fast(outfile, stop_simulation)
-
-    while not stop_simulation.is_set():
-        time.sleep(0.1)
+    stop_simulation.wait()
 
 
 @arg('config', help='Path to the config file; example `data/run_configs/eng301.json`')
-def run_parallel(config, runs=4, offset=0, save_dir='data/outputs', n_jobs=8):
-    # if not n_jobs:
-    #     n_jobs = max(cpu_count() - 1, 1)
+def run_parallel(
+    config: Path | list[Path],
+    runs: int = 4,
+    offset: int = 0,
+    save_dir: Path = OUTPUTS,
+    n_jobs: int = 8,
+) -> None:
+    """Parallelize the simulation runs using Dask.
 
-    filenames = [Path(f'{save_dir}/simulation_{run}.hdf5') for run in range(offset, runs + offset)]
-    # args = [[model, outfile] for outfile in filenames]
+    Args:
+        config: Path to the simulation config file.
+        runs: Number of simulation runs to perform.
+        offset: Offset for the simulation run IDs.
+        save_dir: Directory to save the simulation output.
+        n_jobs: Number of parallel jobs to run.
+    """
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.pkl', prefix='SIRModel', dir=TEMP) as f:
+        pickle.dump(SIRModel(config), f, protocol=pickle.HIGHEST_PROTOCOL)
+        temp_path = Path(f.name)
 
     with (
-        LocalCluster(
-            n_workers=n_jobs,
-            processes=True,
-            threads_per_worker=1,
-            memory_limit='4GB',
-        ) as cluster,
+        LocalCluster(n_workers=n_jobs, processes=True, threads_per_worker=1) as cluster,
         Client(cluster, direct_to_workers=True) as client,
     ):
-        print(client.dashboard_link)
-        model = client.scatter(
-            SIRModel(config),
-            direct=True,
-            hash=False,
-            broadcast=True,
-        )
-        res = client.map(run_sim_fast, filenames, model=model, actor=True)
+        logger.info(f'Dask cluster dashboard live - {client.dashboard_link}')
+        if isinstance(config, Path):
+            config = [config]
+
+        res: list[Future] = []
+        for cfg in config:
+            filenames = [save_dir / f'{cfg.stem}_{run}.hdf5' for run in range(offset, runs + offset)]
+            res += client.map(run_sim_fast, filenames, model=temp_path, pure=False, key=cfg.stem)
+
         client.gather(res)
 
 
-parser = ArghParser()
-parser.add_commands([run_sim, run_parallel])
-
-
 if __name__ == '__main__':
-    # Uncomment one of these lines if you don't want to use CLI args
-    # run_sim('data/run_configs/eng301.json', fast=False)
-    yappi.start()
-    run_sim('data/run_configs/bsf.json', fast=True, run_id='bsf_1')
-    yappi.stop()
-    yappi.get_thread_stats().print_all()
-    print('=' * 50)
-    threads = yappi.get_thread_stats()
-    for thread in threads:
-        print('Function stats for (%s) (%d)' % (thread.name, thread.id))  # it is the Thread.__class__.__name__
-        yappi.get_func_stats(
-            ctx_id=thread.id,
-            filter_callback=lambda x: '/backend/' in x.full_name,  # or '/site-packages/' in x.full_name,
-        ).print_all(
-            columns={
-                0: ('name', 80),
-                1: ('ncall', 8),
-                2: ('tsub', 8),
-                3: ('ttot', 8),
-                4: ('tavg', 8),
-            }
-        )
-    # run_parallel('data/run_configs/bsf.json', 16)
-    # parser.dispatch()
+    configure_logger('TRACE')
+
+    # profile(
+    #     run_sim,
+    #     config='data/run_configs/bsf.json',
+    #     fast=False,
+    #     run_id='bsf_1',
+    #     callback=profiling_filter(module=['/backend/']),
+    # )
+
+    run_parallel(CFG / 'bsf.json', 16)

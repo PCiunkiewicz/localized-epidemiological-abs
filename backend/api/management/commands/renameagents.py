@@ -1,15 +1,19 @@
-"""
-Custom Reset DB Command for Django Admin
-"""
+"""Custom Reset DB Command for Django Admin."""
+
+from typing import override
 
 from django.core.management.base import BaseCommand
+
 from api.simulation.models import AgentConfig
 
 
 class Command(BaseCommand):
+    """Custom command to reset all agents in the database."""
+
     help = 'Reset all agents in Postgres database'
 
-    def handle(self, *args, **options):
+    @override
+    def handle(self, *args: tuple, **options: dict) -> None:
         self.stdout.write(self.style.WARNING('Renaming agents'))
 
         for i, agent in enumerate(AgentConfig.objects.all()):

@@ -1,50 +1,47 @@
-"""
-MLFramework API Model Serializers
-"""
+"""Localized Epidemiological Simulation API Model Serializers."""
 
 import os
 import re
+from typing import Any, override
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from .models import AgentConfig, Run, Scenario, Simulation, Terrain, Virus
+from api.simulation.models import AgentConfig, Run, Scenario, Simulation, Terrain, Virus
 
 
 class Nested(serializers.PrimaryKeyRelatedField):
-    """
-    Nested serializer for full foreign-key representation
-    """
+    """Nested serializer for full foreign-key representation."""
 
-    def __init__(self, **kwargs):
+    @override
+    def __init__(self, **kwargs: dict) -> None:
         self.serializer = kwargs.pop('serializer', None)
         if self.serializer is not None and not issubclass(self.serializer, serializers.Serializer):
             raise TypeError('"serializer" is not a valid serializer class')
 
         super().__init__(**kwargs)
 
-    def use_pk_only_optimization(self):
+    @override
+    def use_pk_only_optimization(self) -> bool:
         return not bool(self.serializer)
 
-    def to_representation(self, value):
+    @override
+    def to_representation(self, value) -> Any:
         if self.serializer:
             return self.serializer(value, context=self.context).data
         return super().to_representation(value)
 
 
 class TerrainSerializer(serializers.ModelSerializer):
-    """
-    Terrain Model Serializer
-    """
+    """Terrain Model Serializer."""
 
     class Meta:
         model = Terrain
         fields = '__all__'
 
-    def validate(self, attrs):
-        """
-        Validate fields on Terrain
-        """
+    @override
+    def validate(self, attrs: Any) -> Any:
+        """Validate `Terrain` hex colors."""
         for field in {'value', 'color'}:
             if not re.search(r'^#(?:[0-9a-fA-F]{6})$', attrs[field]):
                 raise ValidationError({field: f'invalid hex color: {attrs[field]}'})
@@ -52,9 +49,7 @@ class TerrainSerializer(serializers.ModelSerializer):
 
 
 class SimulationSerializer(serializers.ModelSerializer):
-    """
-    Simulation Model Serializer
-    """
+    """Simulation Model Serializer."""
 
     terrain = TerrainSerializer(read_only=True, many=True)
 
@@ -62,10 +57,8 @@ class SimulationSerializer(serializers.ModelSerializer):
         model = Simulation
         fields = '__all__'
 
-    def validate_mapfile(self, data):
-        """
-        Validate `mapfile` field on Simulation
-        """
+    def validate_mapfile(self, data: Any) -> Any:
+        """Validate `mapfile` path on Simulation."""
         filetypes = ('.png', '.gif')
         if os.path.isdir(data):
             for file in os.listdir(data):
@@ -82,9 +75,7 @@ class SimulationSerializer(serializers.ModelSerializer):
 
 
 class VirusSerializer(serializers.ModelSerializer):
-    """
-    Virus Serializer
-    """
+    """Virus Model Serializer."""
 
     class Meta:
         model = Virus
@@ -92,9 +83,7 @@ class VirusSerializer(serializers.ModelSerializer):
 
 
 class ScenarioSerializer(serializers.ModelSerializer):
-    """
-    Scenario Serializer
-    """
+    """Scenario Model Serializer."""
 
     sim = Nested(queryset=Simulation.objects.all(), serializer=SimulationSerializer)
     virus = Nested(queryset=Virus.objects.all(), serializer=VirusSerializer)
@@ -105,22 +94,21 @@ class ScenarioSerializer(serializers.ModelSerializer):
 
 
 class AgentConfigSerializer(serializers.ModelSerializer):
-    """
-    AgentConfig Serializer
-    """
+    """AgentConfig Model Serializer."""
 
     class Meta:
         model = AgentConfig
         fields = '__all__'
 
-    def validate(self, attrs):  # TODO: come back and finish this json validation, maybe use dataclasses from sim
+    @override
+    def validate(
+        self, attrs: Any
+    ) -> Any:  # TODO: come back and finish this json validation, maybe use dataclasses from sim
         return super().validate(attrs)
 
 
 class RunSerializer(serializers.ModelSerializer):
-    """
-    Run Serializer
-    """
+    """Run Model Serializer."""
 
     scenario = Nested(queryset=Scenario.objects.all(), serializer=ScenarioSerializer)
     agents = Nested(queryset=AgentConfig.objects.all(), serializer=AgentConfigSerializer)
@@ -129,7 +117,8 @@ class RunSerializer(serializers.ModelSerializer):
         model = Run
         fields = '__all__'
 
-    def validate(self, attrs):
+    @override
+    def validate(self, attrs: Any) -> Any:
         if not attrs.get('parallel', False) and attrs.get('runs', 1) > 1:
             raise ValidationError({'runs': 'cannot have `runs` > 1 if `parallel` is false'})
         return super().validate(attrs)

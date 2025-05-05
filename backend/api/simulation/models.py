@@ -1,6 +1,4 @@
-"""
-Localized Epidemiological ABS API Models
-"""
+"""Localized Epidemiological ABS API Models."""
 
 from django.core.validators import MinValueValidator, validate_slug
 from django.db import models
@@ -10,9 +8,7 @@ from django.db import models
 
 
 class Terrain(models.Model):
-    """
-    Terrain Model
-    """
+    """Terrain Model representing different types of surfaces in the simulation."""
 
     name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
     value = models.CharField(max_length=7)
@@ -25,9 +21,7 @@ class Terrain(models.Model):
 
 
 class Simulation(models.Model):
-    """
-    Simulation Details Model
-    """
+    """Simulation Model representing the simulation parameters."""
 
     name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
     mapfile = models.CharField(max_length=250)
@@ -40,9 +34,7 @@ class Simulation(models.Model):
 
 
 class Virus(models.Model):
-    """
-    Virus Model
-    """
+    """Virus Model representing the virus parameters."""
 
     name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
     attack_rate = models.FloatField(default=0.07, validators=[MinValueValidator(0)])
@@ -51,9 +43,7 @@ class Virus(models.Model):
 
 
 class Scenario(models.Model):
-    """
-    Scenario Model
-    """
+    """Scenario Model representing combined parameters for simulation scenarios."""
 
     name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
     sim = models.ForeignKey(Simulation, on_delete=models.CASCADE)
@@ -62,9 +52,7 @@ class Scenario(models.Model):
 
 
 class AgentConfig(models.Model):
-    """
-    Agent Configuration Model
-    """
+    """Agent Configuration Model representing the agent parameters."""
 
     name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
     default = models.JSONField(default=dict)  # TODO: come back and finish this json validation
@@ -74,14 +62,10 @@ class AgentConfig(models.Model):
 
 
 class Run(models.Model):
-    """
-    Run Model
-    """
+    """Run Model representing an individual simulation run or parallel batch."""
 
     class Status(models.TextChoices):
-        """
-        Run `status` field valid options
-        """
+        """Run `status` field possible choices."""
 
         CREATED = 'CREATED'
         RUNNING = 'RUNNING'
