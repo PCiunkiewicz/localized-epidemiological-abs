@@ -90,7 +90,7 @@ class BaseModel(ABC):
         pass
 
 
-@deprecated
+@deprecated('Use parallel launchers and dask instead.')
 def simulate_model(model_cls: type[BaseModel], config: Path, queue: Queue, event: Event, fast: bool = True) -> None:
     """Run SIR Model simulation.
 

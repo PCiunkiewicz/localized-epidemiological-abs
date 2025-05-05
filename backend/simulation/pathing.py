@@ -10,9 +10,9 @@ from typing import Self, overload
 
 import igraph as ig
 import numpy as np
-from backend.utilities.paths import PATHS
 from scipy.spatial import KDTree
 
+from utilities.paths import PATHS
 from utilities.types.pathing import ComputedPaths, Coordinate, Edge, PathSegment
 
 DATA_PATH = Path(__file__).resolve().parent.parent / 'data'
