@@ -149,12 +149,8 @@ class SIRAgent(BaseAgent):
         self.scenario.contaminate(*self.state.pos, viral_load)
 
     @override
-    def move(self, trivial: bool = False) -> None:
-        """Movement decision making for the Agent.
-
-        Args:
-            trivial: Whether the scenario is trivial (no infection possible).
-        """
+    def move(self) -> None:
+        """Movement decision making for the Agent."""
         if self.state.status in CONTAGIOUS:
             self.recover()
         if (self.state.status not in EXCLUDE) and self.scenario.check_schedule:
@@ -171,9 +167,8 @@ class SIRAgent(BaseAgent):
         else:
             self.set_task(wait=300 // self.scenario.sim.t_step)
 
-        if not trivial:
-            if self.is_(SUSCEPTIBLE):
-                if (virus_level := self.scenario.virus_level(*self.state.pos)) > 1:
-                    self._droplet_expose(virus_level)
-            elif self.state.status in CONTAGIOUS:
-                self._droplet_spread()
+        if self.is_(SUSCEPTIBLE):
+            if (virus_level := self.scenario.virus_level(*self.state.pos)) > 1:
+                self._droplet_expose(virus_level)
+        elif self.state.status in CONTAGIOUS:
+            self._droplet_spread()

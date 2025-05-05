@@ -19,7 +19,6 @@ class BaseModel(ABC):
     """Base Model class for simulation.
 
     Attributes:
-        trivial: Flag to indicate if the model is trivial.
         scenario: Scenario object for the simulation.
         sim: Simulation object for the scenario.
         population: List of agents in the simulation.
@@ -35,8 +34,6 @@ class BaseModel(ABC):
             agent_cls: Class of the agent to be used in the simulation.
             scenario_cls: Class of the scenario to be used in the simulation.
         """
-        self.trivial = False
-
         cfg = json.loads(config.read_text())  # TODO: use a dataclass
         self.scenario: BaseScenario = scenario_cls(ScenarioSpec.from_dict(cfg['scenario']))
         self.sim = self.scenario.sim

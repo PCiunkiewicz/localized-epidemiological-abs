@@ -36,7 +36,7 @@ def recv_array(socket: zmq.SyncSocket) -> np.typing.NDArray:
     return data.reshape(metadata['shape'])
 
 
-def publisher(queue: Queue, event: Event, port: int) -> None:
+def publisher(queue: Queue, event: Event, port: int = 5556) -> None:
     """General publisher for zmq subscribers.
 
     Args:

@@ -70,7 +70,6 @@ class ExcessRiskVsTime(BaseStatistic):
         prob: Probability of infection for each agent.
         hours: Array of time elapsed in hours.
         min_size: Minimum file size to consider a file valid.
-        trivial: Trivial zero-valued array result, shape(max_iter, n_agents).
     """
 
     prob: np.typing.NDArray
