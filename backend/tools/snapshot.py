@@ -1,23 +1,39 @@
-"""
-The `snapshot` module contains code exporting
-simulation snapshots as image files.
-"""
+"""Tools for  exporting simulation snapshots as image files."""
+
+from pathlib import Path
 
 import h5py
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import image
+
 from simulation.scenario import VIRUS_SCALE
-from simulation.types.agent import Status
-from tools.utils import STATUS_COLOR, reshape, str_date
+from utilities.tools import STATUS_COLOR, reshape, str_date
+from utilities.types.agent import AgentStatus
 
 
-class SnapshotSim:
+class SimSnapshot:
+    """Base Model class for rendering frame snapshots from simulations.
+
+    Attributes:
+        img: Loaded mapfile image.
+        agents: Array of agent positions and statuses.
+        virus: Array of virus data for each floor.
+        timesteps: Array of simulation timesteps.
     """
-    Base Model class for rendering frame snapshots
-    from completed simulations.
-    """
 
-    def __init__(self, simfile, mapfile):
+    img: np.typing.NDArray
+    agents: np.typing.NDArray
+    virus: np.typing.NDArray
+    timesteps: np.typing.NDArray
+
+    def __init__(self, simfile: Path, mapfile: Path) -> None:
+        """Initialize the snapshot with simulation and map files.
+
+        Args:
+            simfile: Path to the simulation output .h5 file.
+            mapfile: Path to the map image or directory containing map images.
+        """
         self.img = image.imread(mapfile)
 
         with h5py.File(simfile, 'r') as file:
@@ -25,9 +41,15 @@ class SnapshotSim:
             self.virus = file['virus'].__array__()
             self.timesteps = file['timesteps'].__array__()
 
-    def export(self, i, outfile, cmap='bwr_r', label=True):
-        """
-        Export snapshot to output file.
+    def export(self, i: int, outfile: Path, cmap: str = 'bwr_r', label: bool = True) -> None:
+        """Export snapshot to output file.
+
+        Args:
+            i: Index of the snapshot frame to export.
+            outfile: Path to the output file.
+            cmap: Colormap for the virus overlay.
+                https://matplotlib.org/stable/users/explain/colors/colormaps.html
+            label: Whether to label agents with their IDs.
         """
         _, ax = plt.subplots(figsize=[10, 10])
         ax.imshow(self.img)
@@ -35,7 +57,7 @@ class SnapshotSim:
         ax.text(1, 2, str_date(self.timesteps[i]), c='w', fontsize=14)
 
         plot_ref = []
-        for status in Status:
+        for status in AgentStatus:
             ref = ax.plot(
                 *reshape(self.agents[i], status.value),
                 'o',
