@@ -1,48 +1,48 @@
-"""
-The `publisher` module contains code for sending and
-receiving messages using message queueing with `zmq`.
-Special functions have been written for direct handling
-of numpy arrays without pickling the Python objects.
-"""
+"""Message queue publisher for zmq subscribers for transmitting simulation data."""
 
 import time
+from multiprocessing import Queue
+from multiprocessing.synchronize import Event
 
 import numpy as np
 import zmq
 
 
-def send_array(socket, A, flags=0, copy=True, track=False):
+def send_array(socket: zmq.SyncSocket, data: np.typing.NDArray) -> None:
+    """Send a numpy array with metadata.
+
+    Args:
+        socket: ZMQ socket to send data.
+        data: Numpy array to send.
     """
-    Send a numpy array with metadata.
-    """
-    metadata = {'dtype': str(A.dtype), 'shape': A.shape}
-    socket.send_json(metadata, flags | zmq.SNDMORE)
-    return socket.send(A, flags, copy=copy, track=track)
+    metadata = {'dtype': str(data.dtype), 'shape': data.shape}
+    socket.send_json(metadata, 0 | zmq.SNDMORE)
+    socket.send(data)
 
 
-def recv_array(socket, flags=0, copy=True, track=False):
+def recv_array(socket: zmq.SyncSocket) -> np.typing.NDArray:
+    """Receive a numpy array.
+
+    Args:
+        socket: ZMQ socket to receive data.
+
+    Returns:
+        data: Reconstructed numpy array.
     """
-    Receive a numpy array.
-    """
-    metadata = socket.recv_json(flags=flags)
-    msg = socket.recv(flags=flags, copy=copy, track=track)
+    metadata = socket.recv_json()
+    msg = socket.recv()
     buffer = memoryview(msg)
-    A = np.frombuffer(buffer, dtype=metadata['dtype'])
-    return A.reshape(metadata['shape'])
+    data = np.frombuffer(buffer, dtype=metadata['dtype'])
+    return data.reshape(metadata['shape'])
 
 
-def publisher(queue, event, port):
-    """
-    General publisher for zmq subscribers.
+def publisher(queue: Queue, event: Event, port: int) -> None:
+    """General publisher for zmq subscribers.
 
-    Parameters
-    ----------
-    queue : multiprocessing.Queue
-        Public queue for sending data to zmq publisher.
-    event : multiprocessing.Event
-        Stop event for terminating publisher.
-    port : int
-        ZMQ port accessed by subscribers.
+    Args:
+        queue: Public queue for sending data to zmq publisher.
+        event: Stop event for terminating publisher.
+        port: ZMQ port accessed by subscribers.
     """
     context = zmq.Context()
     with context.socket(zmq.PUB) as socket:

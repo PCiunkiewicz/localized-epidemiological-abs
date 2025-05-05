@@ -1,128 +1,120 @@
-"""
-The `writer` module contains code for receiving and
-writing data using message queueing with `zmq` and `hdf5`.
-Special functions have been written for direct handling
-of numpy arrays without pickling the Python objects.
-"""
+"""Results writer subscribing to zmq publisher and writing data to hdf5 file."""
 
 import time
+from pathlib import Path
 
-import zmq
 import h5py
 import numpy as np
+import zmq
 
-from .publisher import recv_array
+from simulation.publisher import recv_array
 
 
-def write_hdf(f, topic, data):
-    if topic in f:
-        dataset = f[topic]
+def write_hdf(file: h5py.File, topic: str, data: np.typing.NDArray) -> None:
+    """Write data to hdf5 file.
+
+    Args:
+        file: HDF5 file object.
+        topic: Topic name for the dataset.
+        data: Data to write to the dataset.
+    """
+    if topic in file:
+        dataset = file[topic]
     else:
-        dataset = create_dataset(f, data, topic)
+        dataset = create_dataset(file, data, topic)
 
     dataset.resize(dataset.len() + 1, axis=0)
     dataset[dataset.len() - 1] = data
 
 
-def create_dataset(f, data, name='default'):
-    return f.create_dataset(
-        name=name,
-        shape=(0,) + data.shape,
-        maxshape=(None,) + data.shape,
-        dtype=data.dtype
-    )
+def create_dataset(file: h5py.File, data: np.typing.NDArray, name: str = 'default') -> h5py.Dataset:
+    """Create a new dataset in the hdf5 file.
 
-
-def save_agents(port, filename):
+    Args:
+        file: HDF5 file object.
+        data: Data to write to the dataset.
+        name: Name of the dataset.
     """
-    Function for writing data to file.
+    return file.create_dataset(name=name, shape=(0,) + data.shape, maxshape=(None,) + data.shape, dtype=data.dtype)
 
-    Parameters
-    ----------
-    port : int
-        ZMQ port accessed by publisher.
-    filename : str
-        Path to output file (must be .hdf5).
+
+def save_agents(port: int, filename: Path) -> None:
+    """Function for writing data to file. Required to support saving virus topics.
+
+    Args:
+        port: ZMQ port accessed by publisher.
+        filename: Path to output file (must be .hdf5).
     """
-    if filename is None:
-        return
-    f = h5py.File(filename, 'w')
+    file = h5py.File(filename, 'w')
     context = zmq.Context()
     with context.socket(zmq.SUB) as socket:
-        socket.connect(f"tcp://localhost:{port}")
+        socket.connect(f'tcp://localhost:{port}')
         socket.setsockopt(zmq.RCVHWM, 0)
         socket.setsockopt(zmq.SUBSCRIBE, b'agents')
         socket.setsockopt(zmq.SUBSCRIBE, b'virus')
         socket.setsockopt(zmq.SUBSCRIBE, b'timesteps')
         socket.setsockopt(zmq.SUBSCRIBE, b'trivial')
         socket.setsockopt(zmq.SUBSCRIBE, b'')
+
         while True:
             topic = socket.recv_string()
-            if topic == 'agents':
+            if topic in ['agents', 'virus']:
                 data = recv_array(socket)
-                write_hdf(f, topic, data)
-            elif topic == 'virus':
-                data = recv_array(socket)
-                write_hdf(f, topic, data)
-            elif topic == 'timesteps':
-                data = socket.recv_pyobj()
-                write_hdf(f, 'timesteps', np.array(data))
+                write_hdf(file, topic, data)
             else:
                 data = socket.recv_pyobj()
-                break
+                if topic == 'timesteps':
+                    write_hdf(file, topic, np.array(data))
+                else:
+                    break
         time.sleep(0.5)
 
     virus = None
     if data == 'stop':
-        if 'virus' in f:
-            virus = f['virus'].__array__().round().astype(np.int16)
+        if 'virus' in file:
+            virus = file['virus'].__array__().round().astype(np.int16)
 
     elif topic == 'trivial':
         virus = np.zeros(shape=data['virus_shape'], dtype=np.int8)
 
-    timesteps = f['timesteps'].__array__()
-    agents = f['agents'].__array__()
-    f.close()
+    timesteps = file['timesteps'].__array__()
+    agents = file['agents'].__array__()
+    file.close()
 
-    with h5py.File(filename, 'w') as f:
-        f.create_dataset('agents', data=agents, compression='gzip', compression_opts=9)
-        f.create_dataset('timesteps', data=timesteps, compression='gzip', compression_opts=9)
+    with h5py.File(filename, 'w') as file:
+        file.create_dataset('agents', data=agents, compression='gzip', compression_opts=9)
+        file.create_dataset('timesteps', data=timesteps, compression='gzip', compression_opts=9)
         if virus is not None:
-            f.create_dataset('virus', data=virus, compression='gzip', compression_opts=9)
+            file.create_dataset('virus', data=virus, compression='gzip', compression_opts=9)
 
 
-def save_agents_fast(port, filename):
+def save_agents_fast(port: int, filename: Path) -> None:
+    """Function for writing data to file in bulk.
+
+    Args:
+        port: ZMQ port accessed by publisher.
+        filename: Path to output file (must be .hdf5).
     """
-    Function for writing data to file.
-
-    Parameters
-    ----------
-    port : int
-        ZMQ port accessed by publisher.
-    filename : str
-        Path to output file (must be .hdf5).
-    """
-    if filename is None:
-        return
     store = {}
     context = zmq.Context()
     with context.socket(zmq.SUB) as socket:
-        socket.connect(f"tcp://localhost:{port}")
+        socket.connect(f'tcp://localhost:{port}')
         socket.setsockopt(zmq.RCVHWM, 0)
         socket.setsockopt(zmq.SUBSCRIBE, b'agents')
         socket.setsockopt(zmq.SUBSCRIBE, b'agent_info')
         socket.setsockopt(zmq.SUBSCRIBE, b'timesteps')
         socket.setsockopt(zmq.SUBSCRIBE, b'')
+
         while True:
             topic = socket.recv_string()
             if topic in ('agents', 'timesteps'):
                 store[topic] = recv_array(socket)
-            elif topic == 'agent_info':
-                data = socket.recv_pyobj()
-                store[topic] = np.array(data, dtype=h5py.special_dtype(vlen=str))
             else:
                 data = socket.recv_pyobj()
-                break
+                if topic == 'agent_info':
+                    store[topic] = np.array(data, dtype=h5py.special_dtype(vlen=str))
+                else:
+                    break
 
     with h5py.File(filename, 'w') as f:
         f.create_dataset('agents', data=store['agents'], compression='gzip', compression_opts=9)

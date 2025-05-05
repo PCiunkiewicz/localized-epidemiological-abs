@@ -1,94 +1,36 @@
-"""
-The `model` module contains code for managing the execution of
-the simulation. The base class `Model` should be subclassed
-when creating new model types, such as an SIR or SEIR model.
-A function is required alongside each model class to run
-the simulation due to the way that Python objects are passed
-between processes and threads.
-"""
+"""SIR model simulation class."""
 
 import datetime as dt
-import json
 import time
-from abc import ABC, abstractmethod
+from multiprocessing import Queue
+from multiprocessing.synchronize import Event
+from pathlib import Path
+from typing import override
 
 import h5py
 import numpy as np
-from simulation.agent import Agent, SIRAgent
-from simulation.scenario import Scenario, SIRScenario
-from simulation.types.agent import AgentSpec, Status
-from simulation.types.scenario import ScenarioSpec
 from tqdm import tqdm
 
-SUSCEPTIBLE, INFECTED, RECOVERED, QUARANTINED, DECEASED, HOSPITALIZED, UNKNOWN = Status
+from simulation.agent import SIRAgent
+from simulation.model.base import BaseModel
+from simulation.scenario import SIRScenario
+from utilities.types.agent import AgentStatus
+
+SUSCEPTIBLE, *_ = AgentStatus
 
 
-class Model(ABC):
-    """
-    Base Model class for simulation.
-    """
+class SIRModel(BaseModel):
+    """Subclassed model for SIR simulation."""
 
-    def __init__(self, config: str, AgentClass: type, ScenarioClass: type):
-        self.trivial = False
+    population: list[SIRAgent]
+    scenario: SIRScenario
 
-        with open(config) as json_file:
-            cfg = json.load(json_file)
-            self.scenario: Scenario = ScenarioClass(ScenarioSpec.from_dict(cfg['scenario']))
-            self.sim = self.scenario.sim
+    @override
+    def __init__(self, config) -> None:
+        super().__init__(config, agent_cls=SIRAgent, scenario_cls=SIRScenario)
 
-        self.population: list[Agent] = []
-        self.create_agents(cfg['agents'], AgentClass)
-
-    def create_agents(self, config: dict, AgentClass: type):
-        """
-        Instantiate agents from configuration file.
-        """
-        for _ in range(config['random_agents']):
-            spec = config['default'].copy()
-            spec['info']['urgency'] = np.random.uniform(0.75, 0.99)
-            agent = AgentClass(self.scenario, AgentSpec.from_dict(spec))
-            self.population.append(agent)
-
-        for i in range(config['random_infected']):
-            self.population[i].infect()
-
-        for custom_agent in config['custom']:
-            spec = config['default'].copy()
-            for key, val in custom_agent.items():
-                spec[key].update(val)
-            agent = AgentClass(self.scenario, AgentSpec.from_dict(spec))
-            self.population.append(agent)
-
-    def get_agents(self) -> np.ndarray:
-        """
-        Get position and status of all agents.
-        """
-        ret = []
-        for p in self.population:
-            ret.append((*p.state.pos, p.state.status.value))
-        return np.array(ret)
-
-    @abstractmethod
-    def model_step(self):
-        pass
-
-    @abstractmethod
-    def simulate(self):
-        pass
-
-
-class SIRModel(Model):
-    """
-    Subclassed model for SIR simulation
-    """
-
-    def __init__(self, config):
-        super().__init__(config, AgentClass=SIRAgent, ScenarioClass=SIRScenario)
-
-    def summarize_agent_info(self):
-        """
-        Summarize agent information for saving.
-        """
+    def summarize_agent_info(self) -> list[str]:
+        """Summarize agent information for saving."""
         ret = []
         for p in self.population:
             if p.info.vax_doses == 0:
@@ -121,10 +63,8 @@ class SIRModel(Model):
             )
         return ret
 
-    def model_step(self):
-        """
-        Steps the simulation forward one iteration
-        """
+    @override
+    def model_step(self) -> None:
         for _ in range(self.sim.save_resolution):
             for p in self.population:
                 p.move(trivial=self.trivial)
@@ -132,16 +72,16 @@ class SIRModel(Model):
                 self.scenario.ventilate()
 
             self.scenario.dt += dt.timedelta(seconds=self.sim.t_step)
-            # if self.scenario.dt.time().hour >= 19:
-            #     self.scenario.dt += dt.timedelta(hours=12)
-            #     self.scenario.virus.matrix[:] = 0
+            # if self.scenario.dt.time().hour >= sanitation_time:
+            #     self.scenario.sanitize() # TODO: Add to config
 
             now = self.scenario.dt.strftime('%H:%M')
             self.scenario.check_schedule = self.scenario.now != now
             if self.scenario.check_schedule:
                 self.scenario.now = now
 
-    def simulate(self, queue, event):
+    @override
+    def simulate(self, queue: Queue, event: Event) -> None:
         print('Simulating...')
         n_iter = 0
         model_time = 0
@@ -199,7 +139,8 @@ class SIRModel(Model):
             pass
         print('=' * 50)
 
-    def simulate_fast(self, filename, event):
+    @override
+    def simulate_fast(self, outfile: Path, event: Event) -> None:
         n_iter = 0
         model_time = 0
 
@@ -227,21 +168,7 @@ class SIRModel(Model):
         pbar.close()
         event.set()
 
-        with h5py.File(filename, 'w') as f:
+        with h5py.File(outfile, 'w') as f:
             f.create_dataset('agents', data=data['agents'], compression='gzip', compression_opts=9)
             f.create_dataset('agent_info', data=self.summarize_agent_info(), compression='gzip', compression_opts=9)
             f.create_dataset('timesteps', data=data['timesteps'], compression='gzip', compression_opts=9)
-
-
-def simulate_model(ModelClass: type, config: str, queue, event, fast=True):
-    """
-    Run SIR Model simulation.
-
-    Simulations are best handled by functions due to
-    the way that objects are passed between processes
-    when using multiprocessing.
-    """
-    if fast:
-        ModelClass(config).simulate_fast(queue, event)
-    else:
-        ModelClass(config).simulate(queue, event)
