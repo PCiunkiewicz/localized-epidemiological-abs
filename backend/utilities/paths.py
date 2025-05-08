@@ -22,6 +22,9 @@ CFG = DATA / 'run_configs'
 TEMP = DATA / 'temp'
 """Temporary files directory: `./backend/data/temp/`"""
 
+for d in [EXPORTS, MAPFILES, OUTPUTS, PATHS, CFG, TEMP]:
+    d.mkdir(parents=True, exist_ok=True)
+
 SIMULATION = BACKEND / 'simulation'
 """Simulation directory: `./backend/simulation/`"""
 

@@ -6,13 +6,14 @@ from multiprocessing.synchronize import Event
 from pathlib import Path
 from typing import override
 
-import h5py
 import numpy as np
+import tables as tb
 from tqdm import tqdm
 
 from simulation.agent import SIRAgent
 from simulation.model.base import BaseModel
 from simulation.scenario import SIRScenario
+from simulation.writer import AgentInfo
 from utilities.types.agent import AgentStatus
 
 SUSCEPTIBLE, *_ = AgentStatus
@@ -28,7 +29,7 @@ class SIRModel(BaseModel):
     def __init__(self, config) -> None:
         super().__init__(config, agent_cls=SIRAgent, scenario_cls=SIRScenario)
 
-    def summarize_agent_info(self) -> list[str]:
+    def summarize_agent_info(self) -> list[dict]:
         """Summarize agent information for saving."""
         ret = []
         for p in self.population:
@@ -45,20 +46,18 @@ class SIRModel(BaseModel):
                 mask = p.info.mask_type.lower()
 
             ret.append(
-                str(
-                    {
-                        'age': p.age,
-                        'sex': np.random.choice(['M', 'F']),
-                        'long_covid': p.long_covid,
-                        'prevention_index': p.prevention_index,
-                        'mask': mask,
-                        'vax': vax,
-                        'infected': p.infected,
-                        'hospitalized': p.hospitalized,
-                        'deceased': p.deceased,
-                        'capacity': len(self.population),
-                    }
-                )
+                {
+                    'age': p.age,
+                    'sex': np.random.choice(['M', 'F']),
+                    'long_covid': p.long_covid,
+                    'prevention_index': p.prevention_index,
+                    'mask': mask,
+                    'vax': vax,
+                    'infected': p.infected,
+                    'hospitalized': p.hospitalized,
+                    'deceased': p.deceased,
+                    'capacity': len(self.population),
+                }
             )
         return ret
 
@@ -113,7 +112,14 @@ class SIRModel(BaseModel):
         pbar.close()
         event.set()
 
-        with h5py.File(outfile, 'w') as f:
-            agents = f.create_dataset('agents', data=data['agents'], compression='gzip', compression_opts=9)
-            agents.attrs['info'] = self.summarize_agent_info()
-            f.create_dataset('timesteps', data=data['timesteps'], compression='gzip', compression_opts=9)
+        with tb.open_file(outfile, mode='w') as f:
+            filters = tb.Filters(complevel=9, complib='blosc2')
+            f.create_carray(f.root, 'agents', obj=data['agents'], filters=filters)
+            f.create_carray(f.root, 'timesteps', obj=data['timesteps'], filters=filters)
+            f.create_table(f.root, 'agent_info', AgentInfo, filters=filters)
+
+            agent_info = f.root['agent_info'].row
+            for agent in self.summarize_agent_info():
+                for key, value in agent.items():
+                    agent_info[key] = value
+                agent_info.append()

@@ -69,7 +69,7 @@ class BaseModel(ABC):
         ret = []
         for p in self.population:
             ret.append((*p.state.pos, p.state.status.value))
-        return np.array(ret)
+        return np.array(ret, dtype=np.int16)
 
     @abstractmethod
     def model_step(self) -> None:

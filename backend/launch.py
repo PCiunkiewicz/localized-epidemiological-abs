@@ -12,11 +12,10 @@ from loguru import logger
 
 # from utilities.profiling import profile, profiling_filter
 from simulation.model.sir import SIRModel
-from simulation.publisher import publisher
-from simulation.writer import save_agents, save_agents_fast
-from utilities.cli import LauncherCLI
+from simulation.publisher import Publisher
+from simulation.writer import Writer
 from utilities.logging import configure_logger
-from utilities.paths import BACKEND, OUTPUTS, TEMP
+from utilities.paths import BACKEND, CFG, OUTPUTS, TEMP
 from utilities.thread import PublisherThread, SimulationThread, WriterThread
 
 PORT_RANGE = 100
@@ -45,23 +44,26 @@ class SimController:
             target=model.simulate_fast if fast else model.simulate,
             args=(self.pub_queue, self.stop_sim),
         )
-        self.publisher = PublisherThread(target=publisher, args=(self.pub_queue, self.stop_pub))
-        self.writer = WriterThread(target=save_agents_fast if fast else save_agents, args=(outfile))
+        self.publisher = PublisherThread(target=Publisher().publish, args=(self.pub_queue, self.stop_pub))
+        self.writer = WriterThread(target=Writer(outfile, model.sim.max_iter).write)
 
     def run(self) -> None:
         """Launch the simulation and publisher/writer threads."""
+        logger.info('Starting simulation...')
         self.publisher.start()
         self.simulation.start()
         self.writer.start()
         self.stop_sim.wait()
+        logger.info('Simulation finished, waiting for publisher and writer to finish...')
 
         self.writer.join()
         self.simulation.join()
         self.stop_pub.set()
         self.publisher.join()
+        logger.info('Done.')
 
 
-def run_sim(config: Path, run_id: int = 0, save_dir: Path = OUTPUTS, fast: bool = False) -> None:
+def run_sim(config: Path, run_id: str | int = 0, save_dir: Path = OUTPUTS, fast: bool = False) -> None:
     """Run the simulation.
 
     Args:
@@ -71,7 +73,7 @@ def run_sim(config: Path, run_id: int = 0, save_dir: Path = OUTPUTS, fast: bool 
         fast: Whether to run the simulation in fast mode.
     """
     save_dir.mkdir(exist_ok=True)
-    outfile = save_dir / f'simulation_{run_id}.hdf5'
+    outfile = save_dir / f'{config.stem}_{run_id}.hdf5'
 
     SimController(config, outfile=outfile, fast=fast).run()
 
@@ -134,14 +136,14 @@ if __name__ == '__main__':
 
     # profile(
     #     run_sim,
-    #     config='data/run_configs/bsf.json',
+    #     config=CFG / 'bsf.json',
     #     fast=False,
     #     run_id='bsf_1',
     #     callback=profiling_filter(module=['/backend/']),
     # )
 
-    launcher, kwargs = LauncherCLI().run()
-    locals().get(launcher)(**kwargs)
-    # get launcher method by string
+    # launcher, kwargs = LauncherCLI().run()
+    # locals().get(launcher)(**kwargs)
 
     # run_parallel(config=CFG / 'bsf.json', runs=8, overwrite=True)
+    run_sim(config=CFG / 'bsf2.json', run_id='test')
