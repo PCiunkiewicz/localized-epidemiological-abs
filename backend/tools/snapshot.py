@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-import h5py
 import matplotlib.pyplot as plt
 import numpy as np
+import tables as tb
 from matplotlib import image
 
 from simulation.scenario import VIRUS_SCALE
@@ -27,19 +27,22 @@ class SimSnapshot:
     virus: np.typing.NDArray
     timesteps: np.typing.NDArray
 
-    def __init__(self, simfile: Path, mapfile: Path) -> None:
+    def __init__(self, results: Path, mapfile: Path) -> None:
         """Initialize the snapshot with simulation and map files.
 
         Args:
-            simfile: Path to the simulation output .h5 file.
+            results: Path to the simulation output .h5 file.
             mapfile: Path to the map image or directory containing map images.
         """
         self.img = image.imread(mapfile)
 
-        with h5py.File(simfile, 'r') as file:
-            self.agents = file['agents'].__array__()
-            self.virus = file['virus'].__array__()
-            self.timesteps = file['timesteps'].__array__()
+        with tb.open_file(results, mode='r') as file:
+            self.agents = file.root.agents.read()
+            self.timesteps = file.root.timesteps.read()
+            try:
+                self.virus = file.root.virus.read()
+            except tb.NoSuchNodeError:
+                self.virus = np.zeros((*self.imgs[0].shape[:2], len(self.imgs)))
 
     def export(self, i: int, outfile: Path, cmap: str = 'bwr_r', label: bool = True) -> None:
         """Export snapshot to output file.

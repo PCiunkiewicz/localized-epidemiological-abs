@@ -5,10 +5,10 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Literal, override
 
-import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import tables as tb
 from matplotlib import image
 from tqdm import tqdm
 
@@ -35,27 +35,27 @@ class BaseStatistic(ABC):
     data: list[np.typing.NDArray]
 
     @abstractmethod
-    def __init__(self, config: Path, results_path: Path) -> None:
+    def __init__(self, config: Path, results: Path) -> None:
         """Initialize the simulation statistics with simulation file.
 
         Args:
             config: Path to the simulation config file.
-            results_path: Path to the simulation results directory.
+            results: Path to the simulation results directory.
         """
-        if not results_path.is_relative_to(OUTPUTS):
-            raise ValueError(f'`results_path` should be in {OUTPUTS}')
+        if not results.is_relative_to(OUTPUTS):
+            raise ValueError(f'`results` should be in {OUTPUTS}')
 
         self.cfg = ScenarioConfig.load(config)
 
-        files = list(results_path.glob('*.hdf5'))
+        files = list(results.glob('*.hdf5'))
         with multiprocessing.Pool(6) as p:  # TODO: replace with ProcessPoolExecutor
             self.data = list(tqdm(p.imap_unordered(self._load, files), total=len(files)))
 
     @abstractmethod
     def _load(self, file: Path, topic: Topic = 'agents') -> np.typing.NDArray:
         """Load simulation data from .h5 file."""
-        with h5py.File(file, 'r') as file:
-            return file[topic].__array__()
+        with tb.open_file(file, mode='r') as file:
+            return file.root[topic].read()
 
     @abstractmethod
     def export(self, outfile: Path) -> None:
@@ -76,8 +76,8 @@ class ExcessRiskVsTime(BaseStatistic):
     hours: np.typing.NDArray
 
     @override
-    def __init__(self, config: Path, results_path: Path) -> None:
-        super().__init__(config, results_path)
+    def __init__(self, config: Path, results: Path) -> None:
+        super().__init__(config, results)
 
         param = self.cfg.scenario.sim
 
@@ -124,8 +124,8 @@ class EpidemiologicalStatusVsTime(BaseStatistic):
     order = [1, 3, 2, 0]
 
     @override
-    def __init__(self, config: Path, results_path: Path) -> None:
-        super().__init__(config, results_path)
+    def __init__(self, config: Path, results: Path) -> None:
+        super().__init__(config, results)
 
         param = self.cfg.scenario.sim
 
@@ -175,8 +175,8 @@ class ViralConcentration(BaseStatistic):
     hours: np.typing.NDArray
 
     @override
-    def __init__(self, config: Path, results_path: Path) -> None:
-        super().__init__(config, results_path)
+    def __init__(self, config: Path, results: Path) -> None:
+        super().__init__(config, results)
 
         param = self.cfg.scenario.sim
         self.img = image.imread(param.mapfile)

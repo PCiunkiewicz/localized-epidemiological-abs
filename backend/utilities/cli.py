@@ -100,6 +100,19 @@ class LauncherCLI(BaseCLI):
             return {
                 'config': config,
                 'save_dir': save_dir,
-                'run_id': int(self.session.prompt(HTML('<b>Run ID: </b>'), **self._prompt_kws(dtype=int)) or 0),
-                'fast': self.session.prompt(HTML('<b>Fast sim: </b>') ** self._prompt_kws(['Y', 'N'])) == 'Y',
+                'run_id': self.session.prompt(HTML('<b>Run ID: </b>'), **self._prompt_kws()),
+                'fast': self.session.prompt(HTML('<b>Fast sim: </b>'), **self._prompt_kws(['Y', 'N'])) == 'Y',
             }
+
+
+class ExporterCLI(BaseCLI):
+    """CLI tool for exporting simulation data."""
+
+    @override
+    def run(self) -> tuple[str, dict[str, Any]]:
+        """Prompt user to select export callable and kwargs."""
+        exporter = self.select_exporter()
+        kwargs = self.exporter_kwargs(exporter)
+        kwargs = {k: v for k, v in kwargs.items() if v}
+
+        return exporter, kwargs

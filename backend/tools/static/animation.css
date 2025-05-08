@@ -1,10 +1,21 @@
 .anim-controls {
     position: fixed;
-    top: 1%;
-    left: 1%;
-    border: 3px solid #5f5f5f;
-    padding: 10px;
-    background-color: #f1f1f1;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 2px solid#323232;
+    padding: 5px;
+    background-color: #f1f1f1bc;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 8px;
+}
+.anim-buttons button {
+    padding: 0;
+    width: 36px;
+    border: 2px solid#323232;
+    background-color:#f1f1f150;
+    color: #323232;
 }
 .animation input[type=checkbox] {
     display: none

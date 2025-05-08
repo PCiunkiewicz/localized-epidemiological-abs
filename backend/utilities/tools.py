@@ -56,5 +56,7 @@ def add_playback_controls(html_anim_path: Path) -> None:
     soup.div.img.decompose()
     soup.div.insert(0, bs4.BeautifulSoup(zoom_img, 'html.parser'))
 
+    soup.div.div.form.decompose()
+
     with open(html_anim_path, 'w') as file:
         file.write(soup.prettify())
