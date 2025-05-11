@@ -1,5 +1,3 @@
-version: "3.9"
-
 x-common-variables: &common-variables
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: postgres
@@ -39,7 +37,7 @@ services:
 
   db:
     container_name: abs-db
-    image: postgres
+    image: postgres:14
     command: postgres -c stats_temp_directory=/tmp
     volumes:
       - ./backend/data/postgres:/var/lib/postgresql/data
@@ -59,7 +57,7 @@ services:
       - './backend/data/mapfiles:/data/mapfiles'
       - './backend/data/outputs:/data/outputs'
       - './backend/data/run_configs:/data/run_configs'
-    entrypoint: ["streamlit", "run", "Home.py"]
+    entrypoint: ["streamlit", "run", "app.py"]
     ports:
       - 8501:8501
     depends_on:
