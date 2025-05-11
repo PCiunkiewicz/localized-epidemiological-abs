@@ -4,6 +4,6 @@ RUN apt-get update && apt-get install -y gcc g++
 
 WORKDIR /app
 RUN pip install -U pip
-RUN pip install streamlit==1.32.2 streamlit_code_editor==0.1.12 streamlit-monaco==0.1.3
+RUN pip install streamlit==1.45.0 streamlit-monaco==0.1.3
 
-ENTRYPOINT ["streamlit", "run", "Home.py"]
+ENTRYPOINT ["streamlit", "run", "app.py"]
