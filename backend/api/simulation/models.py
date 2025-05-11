@@ -1,5 +1,6 @@
 """Localized Epidemiological ABS API Models."""
 
+from django.core.exceptions import FieldDoesNotExist
 from django.core.validators import MinValueValidator, validate_slug
 from django.db import models
 
@@ -7,7 +8,23 @@ from django.db import models
 # TODO: add Export model and logic for figures
 
 
-class Terrain(models.Model):
+class BaseModel(models.Model):
+    """Base Model for all models in the simulation app."""
+
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def contains_field(cls, field: str) -> bool:
+        """Check if the model contains a specific field."""
+        try:
+            cls._meta.get_field(field)
+            return True
+        except FieldDoesNotExist:
+            return False
+
+
+class Terrain(BaseModel):
     """Terrain Model representing different types of surfaces in the simulation."""
 
     name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
@@ -20,7 +37,7 @@ class Terrain(models.Model):
     access_level = models.IntegerField(default=0)
 
 
-class Simulation(models.Model):
+class Simulation(BaseModel):
     """Simulation Model representing the simulation parameters."""
 
     name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
@@ -33,7 +50,7 @@ class Simulation(models.Model):
     terrain = models.ManyToManyField(Terrain, blank=True)
 
 
-class Virus(models.Model):
+class Virus(BaseModel):
     """Virus Model representing the virus parameters."""
 
     name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
@@ -42,7 +59,7 @@ class Virus(models.Model):
     fatality_rate = models.FloatField(default=0.01, validators=[MinValueValidator(0)])
 
 
-class Scenario(models.Model):
+class Scenario(BaseModel):
     """Scenario Model representing combined parameters for simulation scenarios."""
 
     name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
@@ -51,7 +68,7 @@ class Scenario(models.Model):
     prevention = models.JSONField()  # TODO: figure out best structure for this, maybe split vax and mask as models?
 
 
-class AgentConfig(models.Model):
+class AgentConfig(BaseModel):
     """Agent Configuration Model representing the agent parameters."""
 
     name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
@@ -61,7 +78,7 @@ class AgentConfig(models.Model):
     custom = models.JSONField(default=list)
 
 
-class Run(models.Model):
+class Run(BaseModel):
     """Run Model representing an individual simulation run or parallel batch."""
 
     class Status(models.TextChoices):

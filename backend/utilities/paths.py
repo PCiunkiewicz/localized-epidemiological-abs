@@ -7,6 +7,10 @@ _ROOT = Path(__file__).parents[2]
 BACKEND = _ROOT / 'backend'
 """Backend directory: `./backend/`"""
 
+# For mounted docker volumes, ./backend is mapped to /code
+if not BACKEND.exists():
+    BACKEND = Path('/code')
+
 DATA = BACKEND / 'data'
 """Data directory: `./backend/data/`"""
 EXPORTS = DATA / 'exports'
