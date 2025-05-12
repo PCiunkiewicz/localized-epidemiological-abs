@@ -1,5 +1,6 @@
 """Import entrypoint for simulation app views."""
 
+from api.simulation.views.admin import ResetDB
 from api.simulation.views.agent_configs import AgentConfigViewSet
 from api.simulation.views.importer import ImportConfig, ListConfigs
 from api.simulation.views.runs import RunViewSet
@@ -17,4 +18,5 @@ __all__ = [
     'VirusViewSet',
     'ListConfigs',
     'ImportConfig',
+    'ResetDB',
 ]

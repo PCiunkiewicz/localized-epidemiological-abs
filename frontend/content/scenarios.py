@@ -1,41 +1,43 @@
 """Scenarios page."""
 
 import json
+from typing import override
 
 import streamlit as st
-from components.orm import generic_orm
 from streamlit_monaco import st_monaco
 
-from utilities.format import id_, options
+from components.orm import GenericORM
+from utilities.api import GenericAPI
 
 PREVENTION_DEFAULT = {'mask': {}, 'vax': {}}
 
 
-def _form() -> dict:
-    data = {}
-    data['name'] = st.text_input('Name')
-    data['sim'] = id_(st.selectbox('Simulation', options('simulations')))
-    data['virus'] = id_(st.selectbox('Virus', options('viruses')))
-    st.write('Prevention')
-    prevention = st_monaco(
-        value=f'{json.dumps(PREVENTION_DEFAULT, indent=4)}',
-        language='json',
-        theme='vs-dark',
-        height='400px',
-    )
-    try:
-        data['prevention'] = json.loads(prevention)
-    except TypeError:
-        data['prevention'] = PREVENTION_DEFAULT
-    except json.decoder.JSONDecodeError:
-        data['prevention'] = None
-        st.warning('Invalid Prevention JSON, check your syntax')
+class Scenarios(GenericORM):
+    """Scenario ORM."""
 
-    return data
+    model = 'scenarios'
+    api = GenericAPI(model)
+
+    @override
+    @classmethod
+    def form(cls) -> dict:
+        data = {}
+        data['name'] = st.text_input('Name')
+        obj = st.selectbox('Simulation', GenericAPI('simulations').get().json(), format_func=cls._format)
+        data['sim'] = obj.get('id') if isinstance(obj, dict) else obj
+        obj = st.selectbox('Virus', GenericAPI('viruses').get().json(), format_func=cls._format)
+        data['virus'] = obj.get('id') if isinstance(obj, dict) else obj
+        st.write('Prevention')
+        prevention = st_monaco(value=f'{json.dumps(PREVENTION_DEFAULT, indent=4)}', language='json')
+        try:
+            data['prevention'] = json.loads(prevention)
+        except TypeError:
+            data['prevention'] = PREVENTION_DEFAULT
+        except json.decoder.JSONDecodeError:
+            data['prevention'] = None
+            st.warning('Invalid Prevention JSON, check your syntax')
+
+        return data
 
 
-generic_orm(
-    'scenarios',
-    create_form=_form,
-    update_form=_form,
-)
+Scenarios.run()

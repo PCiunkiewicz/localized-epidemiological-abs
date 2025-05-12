@@ -1,0 +1,7 @@
+# Title: Admin API
+# Description: API for admin operations
+@base_url = http://localhost:8000/api/v1
+
+###
+# @name Reset Database
+GET {{base_url}}/admin/resetdb/
