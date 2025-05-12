@@ -1,83 +1,89 @@
 """Generic ORM operation interface."""
 
+from abc import ABC, abstractmethod
+
 import streamlit as st
 
-from utilities import api
-from utilities.format import id_, options
+from utilities.api import GenericAPI
 
 
-def generic_orm(model, create_form=None, update_form=None, header=None) -> None:
-    """Generic ORM operation interface."""
-    st.header(header or model.capitalize())
-    if st.button('Refresh'):
-        st.cache_data.clear()
-    _create, _retrieve, _update, _delete = st.tabs(['Create', 'Retrieve', 'Update', 'Delete'])
+class GenericORM(ABC):
+    """Generic ORM class for handling backend requests.
 
-    with _create:
-        generic_create(model, create_form)
+    Attributes:
+        model: Model name for the ORM.
+        form: Callable to generate the streamlit form elements.
+        api: API object for making requests.
+    """
 
-    with _retrieve:
-        generic_retrieve(model)
+    model: str
+    api: GenericAPI
 
-    with _update:
-        generic_update(model, update_form)
+    @classmethod
+    @abstractmethod
+    def form(cls) -> dict:
+        """Generate the streamlit form elements for the model."""
+        pass
 
-    with _delete:
-        generic_delete(model)
+    @classmethod
+    def run(cls) -> None:
+        """Generic ORM operation interface."""
+        st.header(cls.model.capitalize())
+        if st.button('Refresh'):
+            st.cache_data.clear()
 
+        create, retrieve, update, delete = st.tabs(['Create', 'Retrieve', 'Update', 'Delete'])
 
-def generic_create(model, form=None) -> None:
-    """Generic ORM create operation."""
-    with st.form(f'{model}_create'):
-        data = {}
-        if form:
-            data = form()
-        submit = st.form_submit_button('POST')
+        with create:
+            cls.create()
+        with retrieve:
+            cls.retrieve()
+        with update:
+            cls.update()
+        with delete:
+            cls.delete()
 
-    if submit:
-        response = api.post_obj(model, data)
-        st.write(f'`POST {response.url}`', response, response.json())
+    @classmethod
+    def create(cls) -> None:
+        """Generic ORM create operation."""
+        with st.form(f'{cls.model}_create'):
+            data = cls.form()
+            if st.form_submit_button('POST'):
+                response = cls.api.post(data)
+                st.write(f'`POST {response.url}`', response, response.json())
 
+    @classmethod
+    def retrieve(cls) -> None:
+        """Generic ORM retrieve operation."""
+        with st.form(f'{cls.model}_retrieve'):
+            obj = st.selectbox(cls.model.capitalize(), cls.api.get().json(), format_func=cls._format)
+            obj_id = obj.get('id') if isinstance(obj, dict) else obj
+            if st.form_submit_button('GET', disabled=not obj_id):
+                response = cls.api.get(obj_id)
+                st.write(f'`GET {response.url}`', response, response.json())
 
-def generic_retrieve(model, label='name') -> None:
-    """Generic ORM retrieve operation."""
-    with st.form(f'{model}_retrieve'):
-        obj_id = id_(st.selectbox(f'{model.capitalize()} ID', options(model, label)))
-        submit = st.form_submit_button('GET')
+    @classmethod
+    def update(cls) -> None:
+        """Generic ORM update operation."""
+        with st.form(f'{cls.model}_update'):
+            obj = st.selectbox(cls.model.capitalize(), cls.api.get().json(), format_func=cls._format)
+            obj_id = obj.get('id') if isinstance(obj, dict) else obj
+            data = cls.form()
+            if st.form_submit_button('PATCH', disabled=not obj_id):
+                data = {k: v for k, v in data.items() if v}
+                response = cls.api.patch(obj_id, data)
+                st.write(f'`PATCH {response.url}`', response, response.json())
 
-    if submit:
-        response = api.get_obj(model, obj_id)
-        st.write(f'`GET {response.url}`', response, response.json())
+    @classmethod
+    def delete(cls) -> None:
+        """Generic ORM delete operation."""
+        with st.form(f'{cls.model}_delete'):
+            obj = st.selectbox(cls.model.capitalize(), cls.api.get().json(), format_func=cls._format)
+            obj_id = obj.get('id') if isinstance(obj, dict) else obj
+            if st.form_submit_button('DELETE', disabled=not obj_id):
+                response = cls.api.delete(obj_id)
+                st.write(f'`DELETE {response.url}`', response)
 
-
-def generic_update(model, form=None) -> None:
-    """Generic ORM update operation."""
-    with st.form(f'{model}_update'):
-        obj_id = id_(st.selectbox(f'{model.capitalize()} ID', options(model)))
-
-        data = {}
-        if form:
-            data = form()
-        submit = st.form_submit_button('PATCH')
-
-    if submit:
-        if obj_id:
-            data = {k: v for k, v in data.items() if v}
-            response = api.patch_obj(model, obj_id, data)
-            st.write(f'`PATCH {response.url}`', response, response.json())
-        else:
-            st.warning('Please select an ID to update')
-
-
-def generic_delete(model, label='name') -> None:
-    """Generic ORM delete operation."""
-    with st.form(f'{model}_delete'):
-        obj_id = id_(st.selectbox(f'{model.capitalize()} ID', options(model, label)))
-        submit = st.form_submit_button('DELETE')
-
-    if submit:
-        if obj_id:
-            response = api.delete_obj(model, obj_id)
-            st.write(f'`DELETE {response.url}`', response)
-        else:
-            st.warning('Please select an ID to delete')
+    @staticmethod
+    def _format(obj: dict) -> str:
+        return f'{obj["id"]} - {obj["name"]}'
