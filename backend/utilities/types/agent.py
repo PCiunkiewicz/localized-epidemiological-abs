@@ -103,7 +103,7 @@ class AgentState:
 
 @dataclass
 class AgentSpec:
-    """Full agent specification.
+    """Individual agent specification.
 
     Attributes:
         info: General agent information.

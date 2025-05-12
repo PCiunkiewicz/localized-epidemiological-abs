@@ -1,11 +1,18 @@
 """Defined filepaths used in the simulation and tools."""
 
+import os
 from pathlib import Path
 
 _ROOT = Path(__file__).parents[2]
 
-BACKEND = _ROOT / 'backend'
-"""Backend directory: `./backend/`"""
+# For mounted docker volumes, ./backend is mapped to /code
+if os.environ.get('DOCKERIZED', False):
+    BACKEND = Path('/code')
+    """Backend directory: `/code/`"""
+else:
+    BACKEND = _ROOT / 'backend'
+    """Backend directory: `./backend/`"""
+
 
 DATA = BACKEND / 'data'
 """Data directory: `./backend/data/`"""

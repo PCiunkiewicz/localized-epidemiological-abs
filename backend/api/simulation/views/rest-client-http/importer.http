@@ -1,0 +1,17 @@
+# Title: Importer API
+# Description: API for importing configurations
+@base_url = http://localhost:8000/api/v1
+
+###
+# @name List Configs
+GET {{base_url}}/importer/configs/
+
+###
+# @name Import Config
+POST {{base_url}}/importer/import/
+content-type: application/json
+
+{
+    "config_path": "/code/data/run_configs/bsf.json",
+    "exist_ok": true
+}

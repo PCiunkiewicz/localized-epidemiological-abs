@@ -16,12 +16,14 @@ class VirusInfo:
     """Virus epidemiological information.
 
     Attributes:
+        name: Name of the virus.
         attack_rate: Attack rate of the virus.
         infection_rate: Infection rate of the virus.
         matrix: Matrix representing the virus spread.
         decay_factor: Decay factor for the virus.
     """
 
+    name: str
     attack_rate: float
     infection_rate: float
     matrix: np.ndarray | None
@@ -58,6 +60,7 @@ class SimSetup:
     """Simulation setup information.
 
     Attributes:
+        name: Name of the simulation.
         mapfile: Path to the map file or directory.
         shape: Shape of the simulation area.
         xy_scale: Scale of the simulation area.
@@ -69,6 +72,7 @@ class SimSetup:
         masks: Dictionary of masks for different terrains.
     """
 
+    name: str
     mapfile: str
     shape: tuple[int] | None
     xy_scale: float
@@ -152,11 +156,13 @@ class ScenarioSpec:
     """Full simulation scenario specification.
 
     Attributes:
+        name: Name of the scenario.
         sim: Simulation setup information.
         virus: Virus epidemiological information.
         prevention: Prevention index / intervention measures information.
     """
 
+    name: str
     sim: SimSetup
     virus: VirusInfo
     prevention: PreventionIndex
