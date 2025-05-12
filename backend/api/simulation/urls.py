@@ -17,4 +17,5 @@ urlpatterns = router.urls
 urlpatterns += [
     path('importer/configs/', views.ListConfigs.as_view()),
     path('importer/import/', views.ImportConfig.as_view()),
+    path('admin/resetdb/', views.ResetDB.as_view()),
 ]

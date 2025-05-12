@@ -129,13 +129,12 @@ class ImportConfig(APIView):
             return len([x for x in info.messages if model.__name__.capitalize() in x])
 
         info.summary = (
-            f'Created {len(info.messages)} new objects:\n'
-            f'  Terrains: {_count(models.Terrain)}\n'
-            f'  Simulations: {_count(models.Simulation)}\n'
-            f'  Viruses: {_count(models.Virus)}\n'
-            f'  Scenarios: {_count(models.Scenario)}\n'
-            f'  Agent Configs: {_count(models.AgentConfig)}\n'
-            f'Warnings: {len(info.warnings)}\n'
+            f'Created {len(info.messages)} new objects with {len(info.warnings)} warnings:\n'
+            f'  - Terrains: {_count(models.Terrain)}\n'
+            f'  - Simulations: {_count(models.Simulation)}\n'
+            f'  - Viruses: {_count(models.Virus)}\n'
+            f'  - Scenarios: {_count(models.Scenario)}\n'
+            f'  - Agent Configs: {_count(models.AgentConfig)}'
         )
 
     def _prepare(self, data: dataclass, model: type[models.BaseModel]) -> dict:
