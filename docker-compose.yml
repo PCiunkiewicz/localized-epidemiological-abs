@@ -63,3 +63,13 @@ services:
     depends_on:
       - db
       - api
+  
+  frontend-new:
+    build: ./frontend-new
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend-new:/app
+      - /app/node_modules  
+    working_dir: /app
+    command: pnpm dev --host
