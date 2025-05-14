@@ -15,3 +15,4 @@ backend/data/
 
 # Other
 experiments/
+node_modules

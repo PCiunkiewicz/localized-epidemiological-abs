@@ -1,0 +1,25 @@
+{
+  "name": "loc-abs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "prepare": "husky install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.11.0",
+  "devDependencies": {
+    "eslint": "^9.26.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
+    "prettier": "^3.5.3"
+  },
+  "lint-staged": {
+    "frontend-new/**/*.{ts,tsx,js}": [
+      "eslint --config frontend-new/eslint.config.js --fix",
+      "prettier --write"
+    ]
+  }
+}
