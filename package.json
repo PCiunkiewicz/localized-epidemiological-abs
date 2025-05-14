@@ -11,6 +11,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.11.0",
   "devDependencies": {
+    "@types/react-router-dom": "^5.3.3",
     "eslint": "^9.26.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.0.0",
@@ -21,5 +22,8 @@
       "eslint --config frontend-new/eslint.config.js --fix",
       "prettier --write"
     ]
+  },
+  "dependencies": {
+    "react-router-dom": "^7.6.0"
   }
 }
