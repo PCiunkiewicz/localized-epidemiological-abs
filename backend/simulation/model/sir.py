@@ -1,14 +1,14 @@
 """SIR model simulation class."""
 
-import datetime as dt
-from multiprocessing import Queue
-from multiprocessing.synchronize import Event
+import os
+from datetime import timedelta
 from pathlib import Path
+from queue import Queue
 from typing import override
 
 import numpy as np
 import tables as tb
-from tqdm import tqdm
+import tqdm
 
 from simulation.agent import SIRAgent
 from simulation.model.base import BaseModel
@@ -68,7 +68,7 @@ class SIRModel(BaseModel):
                 p.move()
             self.scenario.ventilate()
 
-            self.scenario.dt += dt.timedelta(seconds=self.sim.t_step)
+            self.scenario.dt += timedelta(seconds=self.sim.t_step)
             # if self.scenario.dt.time().hour >= sanitation_time:
             #     self.scenario.sanitize() # TODO: Add to config
 
@@ -78,13 +78,14 @@ class SIRModel(BaseModel):
                 self.scenario.now = now
 
     @override
-    def simulate(self, queue: Queue, event: Event) -> None:
-        pbar = tqdm(desc='Timesteps', total=self.sim.max_iter * self.sim.save_resolution, unit='step')
+    def simulate(self, queue: Queue) -> None:
+        step = self.sim.save_resolution
+        pbar = tqdm.tqdm(desc='Timesteps', total=self.sim.max_iter * step)
 
         n_iter = 0
         while n_iter < self.sim.max_iter:
             if queue.empty():
-                pbar.update(self.sim.save_resolution)
+                pbar.update(step)
                 n_iter += 1
                 self.model_step()
                 queue.put({'topic': 'timesteps', 'data': self.scenario.dt.timestamp()})
@@ -92,26 +93,28 @@ class SIRModel(BaseModel):
                 if self.sim.save_verbose:
                     queue.put({'topic': 'virus', 'data': self.scenario.virus.matrix.copy()})
 
-        pbar.close()
-        event.set()
         queue.put({'topic': 'agent_info', 'data': self.summarize_agent_info()})
 
     @override
-    def simulate_fast(self, outfile: Path, event: Event) -> None:
+    def simulate_fast(self, outfile: Path) -> None:
         data = {'timesteps': [], 'agents': []}
-        pbar = tqdm(desc='Timesteps', total=self.sim.max_iter * self.sim.save_resolution, unit='step')
 
-        n_iter = 0
-        while n_iter < self.sim.max_iter:
-            pbar.update(self.sim.save_resolution)
-            n_iter += 1
+        step = self.sim.save_resolution
+        file = open(os.devnull, 'w') if os.environ.get('DOCKERIZED', False) else None
+        pbar = tqdm.tqdm(desc=f'Run {int(outfile.stem):03}', total=self.sim.max_iter * step, file=file)
+
+        for i in range(self.sim.max_iter):
+            pbar.update(step)
             self.model_step()
             data['timesteps'].append(self.scenario.dt.timestamp())
             data['agents'].append(self.get_agents())
+            if file and i % (self.sim.max_iter // 4) == 0:
+                print(pbar)
 
-        pbar.close()
-        event.set()
+        self._write_outputs(data, outfile)
 
+    def _write_outputs(self, data: dict, outfile: Path) -> None:
+        """Write simulation data to HDF5 file directly."""
         with tb.open_file(outfile, mode='w') as f:
             filters = tb.Filters(complevel=9, complib='blosc2')
             f.create_carray(f.root, 'agents', obj=data['agents'], filters=filters)

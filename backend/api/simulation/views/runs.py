@@ -2,16 +2,17 @@
 
 import json
 import shutil
-import subprocess
+from multiprocessing import Process
 from typing import override
 
-from django.conf import settings
 from rest_framework import status, viewsets
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from api.simulation.models import Run
 from api.simulation.serializers import RunSerializer
+from simulation.launcher import SimLauncher
+from utilities import paths
 
 
 class RunViewSet(viewsets.ModelViewSet):
@@ -27,16 +28,16 @@ class RunViewSet(viewsets.ModelViewSet):
     def create(self, request: Request) -> Response:
         serializer = RunSerializer(data=request.data)
         if serializer.is_valid():
-            run = serializer.save()
-            run.save_dir = settings.RUN_OUTPUT_DIR / f'{run.id:03}-{run.name}'
-            run.logfile = settings.LOG_DIR / f'{run.id:03}-{run.name}.log'
-            run.config = settings.RUN_CONFIG_DIR / f'{run.id:03}-{run.name}.json'
+            run: Run = serializer.save()
+            run.save_dir = paths.OUTPUTS / f'{run.id:03}-{run.name}'
+            run.logfile = paths.LOGS / f'{run.id:03}-{run.name}.log'
+            run.config = paths.CFG / f'{run.id:03}-{run.name}.json'
             run.save()
 
-            with open(run.config, 'w') as file:
-                json.dump(serializer.data, file, indent=2)
+            run.config.write_text(json.dumps(serializer.data, indent=2))
 
-            launch(run)
+            launcher = SimLauncher(run)
+            Process(target=launcher.start, daemon=True).start()
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -53,9 +54,9 @@ class RunViewSet(viewsets.ModelViewSet):
 
         if name != run.name:
             new_paths = {
-                'save_dir': str(settings.RUN_OUTPUT_DIR / f'{run.id:03}-{name}'),
-                'logfile': str(settings.LOG_DIR / f'{run.id:03}-{name}.log'),
-                'config': str(settings.RUN_CONFIG_DIR / f'{run.id:03}-{name}.json'),
+                'save_dir': str(paths.OUTPUTS / f'{run.id:03}-{name}'),
+                'logfile': str(paths.LOGS / f'{run.id:03}-{name}.log'),
+                'config': str(paths.CFG / f'{run.id:03}-{name}.json'),
             }
 
             for key, new_path in new_paths.items():
@@ -64,20 +65,3 @@ class RunViewSet(viewsets.ModelViewSet):
             response = super().partial_update(request, pk=pk)
 
         return response
-
-
-def launch(run: Run) -> None:
-    """Execute simulation run async."""
-    method = 'run-parallel' if run.parallel else 'run-sim'
-
-    with open(run.logfile, 'w') as logfile:
-        subprocess.Popen(
-            ['python', settings.BASE_DIR / 'launch.py', method, run.config, '-r', str(run.runs), '-s', run.save_dir],
-            stdout=logfile,
-            stderr=logfile,
-            cwd=settings.BASE_DIR,
-            shell=False,
-        )
-
-    run.status = run.Status.RUNNING
-    run.save()
