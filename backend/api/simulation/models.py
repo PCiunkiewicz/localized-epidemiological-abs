@@ -1,5 +1,9 @@
 """Localized Epidemiological ABS API Models."""
 
+from __future__ import annotations
+
+from pathlib import Path
+
 from django.core.exceptions import FieldDoesNotExist
 from django.core.validators import MinValueValidator, validate_slug
 from django.db import models
@@ -91,11 +95,9 @@ class Run(BaseModel):
 
     name = models.CharField(max_length=250, validators=[validate_slug])
     status = models.CharField(max_length=7, choices=Status.choices, default=Status.CREATED)
-    save_dir = models.CharField(max_length=250, null=True)
-    config = models.CharField(max_length=250, null=True)
-    logfile = models.CharField(max_length=250, null=True)
+    save_dir: str | Path = models.CharField(max_length=250, null=True)
+    config: str | Path = models.CharField(max_length=250, null=True)
+    logfile: str | Path = models.CharField(max_length=250, null=True)
     scenario = models.ForeignKey(Scenario, on_delete=models.RESTRICT)
     agents = models.ForeignKey(AgentConfig, on_delete=models.RESTRICT)
     runs = models.IntegerField(default=1, validators=[MinValueValidator(1)])
-    parallel = models.BooleanField(default=False)  # TODO: consider replacing with n_jobs or adding
-    # TODO: add status and special logic for polling completeness
