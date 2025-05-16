@@ -116,9 +116,3 @@ class RunSerializer(serializers.ModelSerializer):
     class Meta:
         model = Run
         fields = '__all__'
-
-    @override
-    def validate(self, attrs: Any) -> Any:
-        if not attrs.get('parallel', False) and attrs.get('runs', 1) > 1:
-            raise ValidationError({'runs': 'cannot have `runs` > 1 if `parallel` is false'})
-        return super().validate(attrs)

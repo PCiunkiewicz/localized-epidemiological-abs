@@ -26,10 +26,12 @@ PATHS = DATA / 'paths'
 """Pathfinding directory: `./backend/data/paths/`"""
 CFG = DATA / 'run_configs'
 """Run configurations directory: `./backend/data/run_configs/`"""
+LOGS = DATA / 'logs'
+"""Run configurations directory: `./backend/data/logs/`"""
 TEMP = DATA / 'temp'
 """Temporary files directory: `./backend/data/temp/`"""
 
-for d in [EXPORTS, MAPFILES, OUTPUTS, PATHS, CFG, TEMP]:
+for d in [EXPORTS, MAPFILES, OUTPUTS, PATHS, CFG, LOGS, TEMP]:
     d.mkdir(parents=True, exist_ok=True)
 
 SIMULATION = BACKEND / 'simulation'

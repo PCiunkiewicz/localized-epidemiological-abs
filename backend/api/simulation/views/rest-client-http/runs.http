@@ -1,0 +1,24 @@
+# Title: Runs API
+# Description: API for creating and viewing runs
+@base_url = http://localhost:8000/api/v1
+
+###
+# @name List Runs
+GET {{base_url}}/runs/
+
+###
+# @name Retrieve Run
+GET {{base_url}}/runs/4
+
+###
+# @name Create Run
+POST {{base_url}}/runs/
+content-type: application/json
+
+{
+    "name": "test-run",
+    "scenario": 1,
+    "agents": 1,
+    "runs": 1,
+    "parallel": false
+}

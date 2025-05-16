@@ -52,13 +52,19 @@ LEVEL_COLOR: dict[LogLevel, str] = {
 }
 
 
-def configure_logger(level: LogLevel = 'SUCCESS') -> None:
+def configure_logger(level: LogLevel = 'SUCCESS', file: loguru.Writable | None = None) -> None:
     """Configure the logger with a specific level."""
     logger.remove()
     logger.add(sys.stderr, level=level, format=formatter)
+    if file:
+        logger.add(file, level=level, format=formatter)
 
-    logger.level('PROFILE', no=20, color=LEVEL_COLOR['PROFILE'])
-    logger.__class__.profile = partialmethod(logger.__class__.log, 'PROFILE')
+    try:
+        logger.level('PROFILE', no=20, color=LEVEL_COLOR['PROFILE'])
+        logger.__class__.profile = partialmethod(logger.__class__.log, 'PROFILE')
+    except ValueError:
+        # If the level already exists, we can just use it
+        pass
 
     for level in get_args(LogLevel):
         logger.level(level, color=LEVEL_COLOR[level])
