@@ -7,7 +7,6 @@ from typing import override
 
 import numpy as np
 import zmq
-from loguru import logger
 
 from utilities.socket import SocketHandler
 
@@ -36,7 +35,6 @@ class Publisher(SocketHandler):
                 if data and data['topic'] == 'agent_info':
                     break
                 time.sleep(0.001)  # Sleeps 1 milliseconds to be polite with the CPU
-        logger.debug('Publisher stopped.')
 
     @override
     def configure_socket(self, port: int) -> None:

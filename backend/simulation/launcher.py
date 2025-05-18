@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import os
 import pickle
-import sys
 import tempfile
 from pathlib import Path
 from queue import Queue
 from threading import Event
 
 import django
-from dask.distributed import Client, LocalCluster
+from dask.distributed import Client, wait
 from django.db import connections
 from loguru import logger
 
@@ -20,11 +19,11 @@ from simulation.model.sir import SIRModel
 from simulation.publisher import Publisher
 from simulation.writer import Writer
 from utilities.importer import ConfigImporter
-from utilities.logging import configure_logger
-from utilities.paths import BACKEND, TEMP
+from utilities.logging import Redirector
+from utilities.paths import BACKEND, TMP
 from utilities.thread import PublisherThread, SimulationThread, WriterThread
 
-N_JOBS = os.cpu_count() or 1
+HOST = 'dask' if os.environ.get('DOCKERIZED', False) else 'localhost'
 
 
 class SimLauncher:
@@ -32,18 +31,12 @@ class SimLauncher:
 
     def __init__(self, run: Run | int) -> None:
         """Initialize the simulation launcher with a run."""
-        if os.environ.get('DOCKERIZED', False):
-            sys.stderr = run.logfile.open('w')
-            sys.stdout = run.logfile.open('a')
-            configure_logger('TRACE', file=None)
-        else:
-            configure_logger('TRACE', file=run.logfile.open('w'))
-
         django.setup()
         for conn in connections.all():
             conn.close()
 
         self.run = Run.objects.get(id=run) if isinstance(run, int) else run
+        (BACKEND / self.run.save_dir).mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def from_config(cls, config: Path, runs: int = 1, exist_ok: bool = True) -> SimLauncher:
@@ -61,12 +54,15 @@ class SimLauncher:
     def start(self) -> None:
         """Start the simulation run."""
         self.set_status(Run.Status.RUNNING)
-        try:
-            self.run_parallel() if self.run.runs > 1 else self.run_sim()
-            self.set_status(Run.Status.SUCCESS)
-        except Exception:
-            self.set_status(Run.Status.FAILURE)
-            raise
+        with Redirector(self.run.logfile):
+            try:
+                logger.debug(f'Writing outputs to >> {self.run.save_dir}/*.hdf5')
+                logger.debug(f'Logging to >> {self.run.logfile}')
+                self.run_parallel() if self.run.runs > 1 else self.run_sim()
+                self.set_status(Run.Status.SUCCESS)
+            except Exception:
+                self.set_status(Run.Status.FAILURE)
+                raise
 
     def set_status(self, status: Run.Status) -> None:
         """Set the status of the run."""
@@ -74,19 +70,20 @@ class SimLauncher:
 
     def run_sim(self) -> None:
         """Launch a single simulation run using threads."""
-        model = SIRModel(self.run.config)
-        outfile = self.run.save_dir.with_suffix('.hdf5')
+        logger.debug('Loading model assets...')
+        model = SIRModel(BACKEND / self.run.config)
+        outfile = self.run.save_dir / '0.hdf5'
 
         try:
-            logger.info('Starting simulation...')
+            logger.debug('Starting simulation|publisher|writer threads...')
             terminate = Event()
             (publisher := PublisherThread(target=Publisher().publish, args=(pub_queue := Queue(), terminate))).start()
             (simulation := SimulationThread(target=model.simulate, args=(pub_queue,))).start()
             (writer := WriterThread(target=Writer(outfile, model.sim.max_iter).write, args=(terminate,))).start()
 
             simulation.join()
+            logger.debug('Simulation finished, waiting for publisher|writer threads...')
             publisher.join()
-            logger.debug('Simulation finished, waiting for writer...')
             writer.join()
             logger.success(f'Simulation results saved to {outfile}.')
         except Exception:
@@ -101,32 +98,30 @@ class SimLauncher:
 
     def run_parallel(self) -> None:
         """Parallelize multiple simulation runs using Dask."""
-        self.run.save_dir.mkdir(parents=True, exist_ok=True)
+        logger.debug(f'Configuring {self.run.runs} runs for {self.run.name} (id={self.run.id})...')
 
-        logger.info(f'Scheduling {self.run.runs} runs for {self.run.name}...')
-        logger.info(f'Saving outputs to >> {self.run.save_dir.relative_to(BACKEND)}/')
-        logger.debug(f'Starting {N_JOBS} workers...')
-
-        with (
-            LocalCluster(n_workers=N_JOBS, processes=True, threads_per_worker=1) as cluster,
-            Client(cluster, direct_to_workers=True) as client,
-        ):
-            logger.success(f'Dask cluster dashboard live - {client.dashboard_link}')
+        with Client(f'tcp://{HOST}:8786', direct_to_workers=True) as client:
+            logger.success(f'Dask cluster dashboard - {client.dashboard_link}')
 
             filenames = [self.run.save_dir / f'{run}.hdf5' for run in range(self.run.runs)]
             if any(f.exists() for f in filenames):
                 raise FileExistsError(f'Output files already exist in {self.run.save_dir}')
 
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.pkl', prefix='SIRModel', dir=TEMP) as f:
-                pickle.dump(SIRModel(self.run.config), f, protocol=pickle.HIGHEST_PROTOCOL)
-                temp_path = Path(f.name)
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pkl', prefix='SIRModel', dir=TMP) as f:
+                model = SIRModel(self.run.config)
+                pickle.dump(model, f, protocol=pickle.HIGHEST_PROTOCOL)
+                model_pkl = Path(f.name).relative_to(TMP)
 
-            res = client.map(self._parallel_helper, filenames, model=temp_path, pure=False, key=self.run.name)
-            client.gather(res)
+            job_id = f'{self.run.id:03}-{self.run.name}'
+            res = client.map(self._parallel_helper, filenames, model_pkl=model_pkl, pure=False, key=job_id)
+            logger.debug('Simulation runs submitted to scheduler, waiting for completion...')
+            wait(res)
+            logger.success('All simulation runs completed successfully.')
 
-    def _parallel_helper(self, outfile: Path, model: SIRModel | Path) -> None:
+    def _parallel_helper(self, outfile: Path, model_pkl: Path) -> None:
         """Callable for Dask."""
-        if isinstance(model, Path):
-            model = pickle.loads(model.read_bytes())
+        if isinstance(model_pkl, Path):
+            model: SIRModel = pickle.loads((TMP / model_pkl).read_bytes())
 
-        model.simulate_fast(outfile)
+        with Redirector(self.run.logfile):
+            model.simulate_fast(BACKEND / outfile)

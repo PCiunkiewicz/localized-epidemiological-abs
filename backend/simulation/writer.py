@@ -7,7 +7,6 @@ from typing import override
 import numpy as np
 import tables as tb
 import zmq
-from loguru import logger
 
 from utilities.socket import SocketHandler
 
@@ -66,7 +65,6 @@ class Writer(SocketHandler):
                         break
 
         self.file.close()
-        logger.debug('Writer stopped.')
 
     def _append(self, topic: str, data: np.typing.NDArray) -> None:
         """Append data to EArray, creating array if required."""

@@ -9,6 +9,7 @@ from typing import override
 import numpy as np
 import tables as tb
 import tqdm
+from loguru import logger
 
 from simulation.agent import SIRAgent
 from simulation.model.base import BaseModel
@@ -26,7 +27,7 @@ class SIRModel(BaseModel):
     scenario: SIRScenario
 
     @override
-    def __init__(self, config) -> None:
+    def __init__(self, config: Path) -> None:
         super().__init__(config, agent_cls=SIRAgent, scenario_cls=SIRScenario)
 
     def summarize_agent_info(self) -> list[dict]:
@@ -80,12 +81,14 @@ class SIRModel(BaseModel):
     @override
     def simulate(self, queue: Queue) -> None:
         step = self.sim.save_resolution
-        pbar = tqdm.tqdm(desc='Timesteps', total=self.sim.max_iter * step)
+        pbar = tqdm.tqdm(desc='Timesteps', total=self.sim.max_iter * step, file=open(os.devnull, 'w'))
+        logger.info(str(pbar), flush=True)
 
         n_iter = 0
         while n_iter < self.sim.max_iter:
             if queue.empty():
                 pbar.update(step)
+                logger.info(f'{pbar}\033[F\033[K', flush=True)
                 n_iter += 1
                 self.model_step()
                 queue.put({'topic': 'timesteps', 'data': self.scenario.dt.timestamp()})
@@ -93,6 +96,7 @@ class SIRModel(BaseModel):
                 if self.sim.save_verbose:
                     queue.put({'topic': 'virus', 'data': self.scenario.virus.matrix.copy()})
 
+        logger.info(str(pbar), flush=True)
         queue.put({'topic': 'agent_info', 'data': self.summarize_agent_info()})
 
     @override
@@ -100,18 +104,19 @@ class SIRModel(BaseModel):
         data = {'timesteps': [], 'agents': []}
 
         step = self.sim.save_resolution
-        file = open(os.devnull, 'w') if os.environ.get('DOCKERIZED', False) else None
-        pbar = tqdm.tqdm(desc=f'Run {int(outfile.stem):03}', total=self.sim.max_iter * step, file=file)
+        pbar = tqdm.tqdm(desc=f'Run {int(outfile.stem):03}', total=self.sim.max_iter * step, file=open(os.devnull, 'w'))
 
         for i in range(self.sim.max_iter):
             pbar.update(step)
             self.model_step()
             data['timesteps'].append(self.scenario.dt.timestamp())
             data['agents'].append(self.get_agents())
-            if file and i % (self.sim.max_iter // 4) == 0:
-                print(pbar)
+            if i % (self.sim.max_iter // 4) == 0:
+                logger.info(str(pbar), flush=True)
 
+        logger.debug(f'Writing simulation data to {outfile}')
         self._write_outputs(data, outfile)
+        logger.debug(f'Simulation data written to {outfile}')
 
     def _write_outputs(self, data: dict, outfile: Path) -> None:
         """Write simulation data to HDF5 file directly."""

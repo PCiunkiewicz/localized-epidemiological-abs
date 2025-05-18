@@ -2,15 +2,13 @@
 
 import json
 from abc import ABC, abstractmethod
-from multiprocessing import Queue
-from multiprocessing.synchronize import Event
 from pathlib import Path
-from warnings import deprecated
 
 import numpy as np
 
 from simulation.agent import BaseAgent
 from simulation.scenario import BaseScenario
+from utilities.paths import BACKEND
 from utilities.types.agent import AgentSpec
 from utilities.types.scenario import ScenarioSpec
 
@@ -34,7 +32,11 @@ class BaseModel(ABC):
             agent_cls: Class of the agent to be used in the simulation.
             scenario_cls: Class of the scenario to be used in the simulation.
         """
-        cfg = json.loads(config.read_text())  # TODO: use a dataclass
+        try:
+            cfg = json.loads(config.read_text())  # TODO: use a dataclass
+        except FileNotFoundError:
+            cfg = json.loads(BACKEND / config.read_text())
+
         self.scenario: BaseScenario = scenario_cls(ScenarioSpec.from_dict(cfg['scenario']))
         self.sim = self.scenario.sim
 
@@ -85,15 +87,3 @@ class BaseModel(ABC):
     def simulate_fast(self) -> None:
         """Run a lightweight optimized variant of the simulation."""
         pass
-
-
-@deprecated('Use parallel launchers and dask instead.')
-def simulate_model(model_cls: type[BaseModel], config: Path, queue: Queue, event: Event, fast: bool = True) -> None:
-    """Run SIR Model simulation.
-
-    Simulation handlers are best handled by functions due to
-    the way that objects are passed between processes when
-    using multiprocessing.
-    """
-    model = model_cls(config)
-    model.simulate_fast(queue, event) if fast else model.simulate(queue, event)

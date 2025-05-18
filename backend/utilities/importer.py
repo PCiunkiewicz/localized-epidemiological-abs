@@ -80,16 +80,21 @@ class ConfigImporter:
 
     def register_new_run(self) -> models.Run:
         """Register a new run in the database."""
-        run = {
+        data = {
             'name': self.config_path.stem,
             'status': models.Run.Status.CREATED,
-            'save_dir': paths.OUTPUTS / self.config_path.stem,
-            'config': self.config_path,
-            'logfile': paths.LOGS / f'{self.config_path.stem}.log',
             'scenario': self.config.scenario,
             'agents': self.config.agents,
         }
-        return self._generic_create(run, models.Run)
+        run: models.Run = self._generic_create(data, models.Run)
+
+        run.save_dir = paths.OUTPUTS.rel / f'{run.id:03}-{run.name}'
+        run.logfile = paths.LOGS.rel / f'{run.id:03}-{run.name}.log'
+        run.config = paths.CFG.rel / f'{run.id:03}-{run.name}.json'
+        run.config.write_text(self.config_path.read_text())
+        run.save()
+
+        return run
 
     def summarize(self) -> None:
         """Summarize the import process."""
