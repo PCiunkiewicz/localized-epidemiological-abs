@@ -29,9 +29,9 @@ class RunViewSet(viewsets.ModelViewSet):
         serializer = RunSerializer(data=request.data)
         if serializer.is_valid():
             run: Run = serializer.save()
-            run.save_dir = paths.OUTPUTS / f'{run.id:03}-{run.name}'
-            run.logfile = paths.LOGS / f'{run.id:03}-{run.name}.log'
-            run.config = paths.CFG / f'{run.id:03}-{run.name}.json'
+            run.save_dir = paths.OUTPUTS.rel / f'{run.id:03}-{run.name}'
+            run.logfile = paths.LOGS.rel / f'{run.id:03}-{run.name}.log'
+            run.config = paths.CFG.rel / f'{run.id:03}-{run.name}.json'
             run.save()
 
             run.config.write_text(json.dumps(serializer.data, indent=2))
@@ -54,9 +54,9 @@ class RunViewSet(viewsets.ModelViewSet):
 
         if name != run.name:
             new_paths = {
-                'save_dir': str(paths.OUTPUTS / f'{run.id:03}-{name}'),
-                'logfile': str(paths.LOGS / f'{run.id:03}-{name}.log'),
-                'config': str(paths.CFG / f'{run.id:03}-{name}.json'),
+                'save_dir': str(paths.OUTPUTS.rel / f'{run.id:03}-{name}'),
+                'logfile': str(paths.LOGS.rel / f'{run.id:03}-{name}.log'),
+                'config': str(paths.CFG.rel / f'{run.id:03}-{name}.json'),
             }
 
             for key, new_path in new_paths.items():
