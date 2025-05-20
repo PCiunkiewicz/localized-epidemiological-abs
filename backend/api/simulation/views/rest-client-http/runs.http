@@ -16,9 +16,8 @@ POST {{base_url}}/runs/
 content-type: application/json
 
 {
-    "name": "test-run",
+    "name": "bsf",
     "scenario": 1,
     "agents": 1,
-    "runs": 1,
-    "parallel": false
+    "runs": 16
 }

@@ -1,6 +1,7 @@
 x-common-variables: &common-variables
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: postgres
+  TZ: America/Edmonton
 
 services:
   api:
@@ -19,6 +20,18 @@ services:
     depends_on:
       - db
 
+  dask:
+    container_name: abs-dask
+    build: ./backend
+    entrypoint: [ "python", "cluster.py"]
+    ports:
+      - "8786:8786"
+      - "8787:8787"
+    environment:
+      TZ: America/Edmonton
+    volumes:
+      - ./backend:/code
+
   db-admin:
     container_name: abs-db-admin
     image: dpage/pgadmin4
@@ -28,6 +41,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: user@domain.com
       PGADMIN_DEFAULT_PASSWORD: password
       GUNICORN_ACCESS_LOGFILE: '/dev/null'
+      TZ: America/Edmonton
     volumes:
       - ./backend/data/pgadmin:/var/lib/pgadmin
     logging:
@@ -57,9 +71,11 @@ services:
       - './backend/data/mapfiles:/data/mapfiles'
       - './backend/data/outputs:/data/outputs'
       - './backend/data/run_configs:/data/run_configs'
-    entrypoint: ["streamlit", "run", "app.py"]
+    entrypoint: [ "streamlit", "run", "app.py" ]
     ports:
       - 8501:8501
+    environment:
+      TZ: America/Edmonton
     depends_on:
       - db
       - api

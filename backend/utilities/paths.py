@@ -8,11 +8,21 @@ _ROOT = Path(__file__).parents[2]
 # For mounted docker volumes, ./backend is mapped to /code
 if os.environ.get('DOCKERIZED', False):
     BACKEND = Path('/code')
-    """Backend directory: `/code/`"""
 else:
     BACKEND = _ROOT / 'backend'
-    """Backend directory: `./backend/`"""
 
+
+class RPath(Path):
+    """Path with a relative path property."""
+
+    @property
+    def rel(self) -> Path:
+        """Return the relative path to the BACKEND directory."""
+        return self.relative_to(BACKEND)
+
+
+BACKEND = RPath(BACKEND)
+"""Backend directory: `./backend/` or `/code/`"""
 
 DATA = BACKEND / 'data'
 """Data directory: `./backend/data/`"""
@@ -28,10 +38,10 @@ CFG = DATA / 'run_configs'
 """Run configurations directory: `./backend/data/run_configs/`"""
 LOGS = DATA / 'logs'
 """Run configurations directory: `./backend/data/logs/`"""
-TEMP = DATA / 'temp'
-"""Temporary files directory: `./backend/data/temp/`"""
+TMP = DATA / 'tmp'
+"""Temporary files directory: `./backend/data/tmp/`"""
 
-for d in [EXPORTS, MAPFILES, OUTPUTS, PATHS, CFG, LOGS, TEMP]:
+for d in [EXPORTS, MAPFILES, OUTPUTS, PATHS, CFG, LOGS, TMP]:
     d.mkdir(parents=True, exist_ok=True)
 
 SIMULATION = BACKEND / 'simulation'
