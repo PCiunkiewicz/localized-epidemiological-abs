@@ -143,12 +143,19 @@ class PreventionIndex:
     """Prevention index / intervention measures information.
 
     Attributes:
+        name: Name of the prevention index.
         vax: Dictionary of vaccination measures.
         mask: Dictionary of mask measures.
     """
 
+    name: str
     vax: dict[str, list[float]]
     mask: dict[str, float]
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'ScenarioSpec':
+        """Create a ScenarioSpec instance from a dictionary."""
+        return dacite.from_dict(data_class=cls, data=data)
 
 
 @dataclass

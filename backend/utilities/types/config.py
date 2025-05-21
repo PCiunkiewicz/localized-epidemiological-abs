@@ -1,5 +1,7 @@
 """Type definitions for the simulation configuration format."""
 
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,27 +33,33 @@ class PartialAgentSpec:
 
 
 @dataclass
-class TotalAgentSpec(PartialAgentSpec):
-    """Total specification for all agents in the scenario with stricter typing."""
+class SimplifiedAgentSpec(AgentSpec):
+    """Simplified agent specification."""
 
     @dataclass
-    class SimplifiedAgentSpec(AgentSpec):
-        """Simplified agent specification."""
+    class SimplifiedAgentState:
+        """Simplified agent state information."""
 
-        @dataclass
-        class SimplifiedAgentState:
-            """Simplified agent state information."""
+        x: int = 0
+        y: int = 0
+        status: str = 'UNKNOWN'
 
-            x: int = 0
-            y: int = 0
-            status: str = 'UNKNOWN'
-
-            @override
-            def __post_init__(self) -> None:
-                if isinstance(self.status, str):
+        @override
+        def __post_init__(self) -> None:
+            if isinstance(self.status, str):
+                try:
                     self.status = AgentStatus[self.status]
+                except KeyError:
+                    raise ValueError(
+                        f'Invalid agent status value: {self.status}. Choose from {AgentStatus._member_names_}.'
+                    )
 
-        state: SimplifiedAgentState
+    state: SimplifiedAgentState
+
+
+@dataclass
+class TotalAgentSpec(PartialAgentSpec):
+    """Total specification for all agents in the scenario with stricter typing."""
 
     default: SimplifiedAgentSpec
     custom: list[SimplifiedAgentSpec] = field(default_factory=list)
