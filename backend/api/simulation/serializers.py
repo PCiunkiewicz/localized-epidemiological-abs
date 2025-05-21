@@ -8,7 +8,7 @@ from rest_framework.exceptions import ValidationError
 
 from api.simulation import models
 from utilities.paths import MAPFILES
-from utilities.types.config import SimplifiedAgentSpec
+from utilities.types.config import ScenarioConfig, SimplifiedAgentSpec
 from utilities.types.scenario import PreventionIndex
 
 
@@ -134,9 +134,10 @@ class AgentConfigSerializer(serializers.ModelSerializer):
         except Exception as e:
             raise ValidationError({'default': f'invalid default agent spec: {e}'})
 
-        for i, spec in enumerate(attrs['custom']):
+        custom = ScenarioConfig._process_agents({'agents': attrs})
+        for i, spec in enumerate(custom):
             try:
-                SimplifiedAgentSpec.from_dict(spec)
+                SimplifiedAgentSpec.from_dict({**attrs['default'], **spec})
             except Exception as e:
                 raise ValidationError({'custom': f'invalid custom agent spec at index {i}: {e}'})
 
