@@ -43,6 +43,7 @@ class ConfigImporter:
         self.import_new_terrains()
         self.import_new_simulation()
         self.import_new_virus()
+        self.import_new_prevention()
         self.import_new_scenario()
         self.import_new_agent_config()
         return self.register_new_run()
@@ -67,6 +68,11 @@ class ConfigImporter:
         """Save virus data to the database."""
         virus = self._prepare(self.config.scenario.virus, models.Virus)
         self.config.scenario.virus = self._generic_create(virus, models.Virus)
+
+    def import_new_prevention(self) -> None:
+        """Save prevention data to the database."""
+        prevention = self._prepare(self.config.scenario.prevention, models.Prevention)
+        self.config.scenario.prevention = self._generic_create(prevention, models.Prevention)
 
     def import_new_scenario(self) -> None:
         """Save scenario data to the database."""
@@ -107,6 +113,7 @@ class ConfigImporter:
             f'  - Terrains: {_count(models.Terrain)}\n'
             f'  - Simulations: {_count(models.Simulation)}\n'
             f'  - Viruses: {_count(models.Virus)}\n'
+            f'  - Preventions: {_count(models.Prevention)}\n'
             f'  - Scenarios: {_count(models.Scenario)}\n'
             f'  - Agent Configs: {_count(models.AgentConfig)}\n'
             f'  - Runs (Registered): {_count(models.Run)}'

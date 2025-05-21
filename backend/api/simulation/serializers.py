@@ -1,13 +1,15 @@
 """Localized Epidemiological Simulation API Model Serializers."""
 
-import os
 import re
 from typing import Any, override
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from api.simulation.models import AgentConfig, Run, Scenario, Simulation, Terrain, Virus
+from api.simulation import models
+from utilities.paths import MAPFILES
+from utilities.types.config import SimplifiedAgentSpec
+from utilities.types.scenario import PreventionIndex
 
 
 class Nested(serializers.PrimaryKeyRelatedField):
@@ -36,7 +38,7 @@ class TerrainSerializer(serializers.ModelSerializer):
     """Terrain Model Serializer."""
 
     class Meta:
-        model = Terrain
+        model = models.Terrain
         fields = '__all__'
 
     @override
@@ -54,65 +56,111 @@ class SimulationSerializer(serializers.ModelSerializer):
     terrain = TerrainSerializer(read_only=True, many=True)
 
     class Meta:
-        model = Simulation
+        model = models.Simulation
         fields = '__all__'
 
     def validate_mapfile(self, data: Any) -> Any:
         """Validate `mapfile` path on Simulation."""
         filetypes = ('.png', '.gif')
-        if os.path.isdir(data):
-            for file in os.listdir(data):
-                if not file.endswith(filetypes):
-                    raise ValidationError({'mapfile': f'must have filetype in {filetypes}'})
-            return data
+        if not (path := MAPFILES.rel / data).exists():
+            raise ValidationError({'mapfile': f'path `{data}` does not exist'})
+        elif path.is_dir():
+            if not any(file.suffix in filetypes for file in path.iterdir()):
+                raise ValidationError({'mapfile': f'no valid files of type {filetypes} found in `{path}`'})
+        elif path.is_file():
+            if path.suffix not in filetypes:
+                raise ValidationError({'mapfile': f'must have filetype in {filetypes}'})
 
-        if not data.endswith(filetypes):
-            raise ValidationError({'mapfile': f'must have filetype in {filetypes}'})
-        if not os.path.isfile(data):
-            raise ValidationError({'mapfile': f'file `{data}` does not exist'})
-
-        return data
+        return path
 
 
 class VirusSerializer(serializers.ModelSerializer):
     """Virus Model Serializer."""
 
     class Meta:
-        model = Virus
+        model = models.Virus
         fields = '__all__'
+
+
+class PreventionSerializer(serializers.ModelSerializer):
+    """Prevention Model Serializer."""
+
+    class Meta:
+        model = models.Prevention
+        fields = '__all__'
+
+    @override
+    def validate(self, attrs: Any) -> Any:
+        """Validate prevention mask and vax attributes."""
+        try:
+            PreventionIndex(**attrs)
+        except Exception as e:
+            raise ValidationError({'prevention': f'Invalid prevention index: {e}'})
+
+        return super().validate(attrs)
 
 
 class ScenarioSerializer(serializers.ModelSerializer):
     """Scenario Model Serializer."""
 
-    sim = Nested(queryset=Simulation.objects.all(), serializer=SimulationSerializer)
-    virus = Nested(queryset=Virus.objects.all(), serializer=VirusSerializer)
-
     class Meta:
-        model = Scenario
+        model = models.Scenario
         fields = '__all__'
+
+
+class NestedScenarioSerializer(ScenarioSerializer):
+    """Nested FK field Scenario Model Serializer."""
+
+    sim = Nested(queryset=models.Simulation.objects.all(), serializer=SimulationSerializer)
+    virus = Nested(queryset=models.Virus.objects.all(), serializer=VirusSerializer)
+    prevention = Nested(queryset=models.Prevention.objects.all(), serializer=PreventionSerializer)
 
 
 class AgentConfigSerializer(serializers.ModelSerializer):
     """AgentConfig Model Serializer."""
 
     class Meta:
-        model = AgentConfig
+        model = models.AgentConfig
         fields = '__all__'
 
-    @override
-    def validate(
-        self, attrs: Any
-    ) -> Any:  # TODO: come back and finish this json validation, maybe use dataclasses from sim
+    @override  # TODO: come back and finish this json validation, maybe use dataclasses from sim
+    def validate(self, attrs: Any) -> Any:
+        """Validate `AgentConfig` fields."""
+        if attrs['random_infected'] > attrs['random_agents']:
+            raise ValidationError({'random_infected': f'must be <= random_agents ({attrs["random_agents"]})'})
+
+        try:
+            SimplifiedAgentSpec.from_dict(attrs['default'])
+        except Exception as e:
+            raise ValidationError({'default': f'invalid default agent spec: {e}'})
+
+        for i, spec in enumerate(attrs['custom']):
+            try:
+                SimplifiedAgentSpec.from_dict(spec)
+            except Exception as e:
+                raise ValidationError({'custom': f'invalid custom agent spec at index {i}: {e}'})
+
+        if attrs['random_agents'] + len(attrs['custom']) == 0:
+            raise ValidationError(
+                {
+                    'random_agents': 'must have non-zero total agents (random + custom)',
+                    'custom_agents': 'must have non-zero total agents (random + custom)',
+                }
+            )
+
         return super().validate(attrs)
 
 
 class RunSerializer(serializers.ModelSerializer):
     """Run Model Serializer."""
 
-    scenario = Nested(queryset=Scenario.objects.all(), serializer=ScenarioSerializer)
-    agents = Nested(queryset=AgentConfig.objects.all(), serializer=AgentConfigSerializer)
-
     class Meta:
-        model = Run
+        model = models.Run
         fields = '__all__'
+
+
+class NestedRunSerializer(RunSerializer):
+    """Nested FK field Run Model Serializer."""
+
+    scenario = Nested(queryset=models.Scenario.objects.all(), serializer=NestedScenarioSerializer)
+    agents = Nested(queryset=models.AgentConfig.objects.all(), serializer=AgentConfigSerializer)
