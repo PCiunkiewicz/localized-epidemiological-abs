@@ -4,26 +4,32 @@ from typing import override
 
 import streamlit as st
 
-from components.orm import GenericORM
+from components.orm import GenericORM, obj_select
 from utilities.api import GenericAPI
 
 
 class Runs(GenericORM):
-    """Scenario ORM."""
+    """Run ORM."""
 
     model = 'runs'
     api = GenericAPI(model)
+    defaults = {
+        'name': '',
+        'scenario': None,
+        'agents': None,
+        'runs': 1,
+    }
 
     @override
     @classmethod
-    def form(cls) -> dict:
+    def form(cls, obj_id: int | None = None) -> dict:
         data = {}
-        data['name'] = st.text_input('Name')
-        obj = st.selectbox('Scenario', GenericAPI('scenarios').get().json(), format_func=cls._format)
-        data['scenario'] = obj.get('id') if isinstance(obj, dict) else obj
-        obj = st.selectbox('Agent Config', GenericAPI('agent_configs').get().json(), format_func=cls._format)
-        data['agents'] = obj.get('id') if isinstance(obj, dict) else obj
-        data['runs'] = st.number_input('Runs', min_value=1, max_value=10000, value=1)
+        obj = cls._get_defaults(obj_id)
+
+        data['name'] = st.text_input('Name', value=obj['name'])
+        data['scenario'] = obj_select('scenarios', obj['scenario'], label='Scenario')
+        data['agents'] = obj_select('agent_configs', obj['agents'], label='Agent Configuration')
+        data['runs'] = st.number_input('Runs', min_value=1, max_value=10000, value=obj['runs'])
 
         return data
 
