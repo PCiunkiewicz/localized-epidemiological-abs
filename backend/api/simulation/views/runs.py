@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from api.simulation.models import Run
-from api.simulation.serializers import RunSerializer
+from api.simulation.serializers import NestedRunSerializer, RunSerializer
 from simulation.launcher import SimLauncher
 from utilities import paths
 
@@ -19,14 +19,21 @@ class RunViewSet(viewsets.ModelViewSet):
     """API Viewset for Run model."""
 
     queryset = Run.objects.all()
-    serializer_class = RunSerializer
+    serializer_class = NestedRunSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
     authentication_classes: list = []  # disables authentication
     permission_classes: list = []  # disables permission
 
     @override
+    def list(self, request: Request) -> Response:
+        queryset = self.filter_queryset(self.get_queryset())
+
+        serializer = RunSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @override
     def create(self, request: Request) -> Response:
-        serializer = RunSerializer(data=request.data)
+        serializer = NestedRunSerializer(data=request.data)
         if serializer.is_valid():
             run: Run = serializer.save()
             run.save_dir = paths.OUTPUTS.rel / f'{run.id:03}-{run.name}'
