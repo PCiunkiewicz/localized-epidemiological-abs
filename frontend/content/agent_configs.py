@@ -43,14 +43,18 @@ class AgentConfigs(GenericORM):
         data = {}
         obj = cls._get_defaults(obj_id)
 
-        data['name'] = st.text_input('Name', value=obj['name'])
+        cols = st.columns([0.5, 0.25, 0.25])
+        data['name'] = cols[0].text_input('Name', value=obj['name'])
 
         input_kws = {'min_value': 0, 'max_value': 1000}
-        data['random_agents'] = st.number_input('Random Agents', value=obj['random_agents'], **input_kws)
-        data['random_infected'] = st.number_input('Random Infected', value=obj['random_infected'], **input_kws)
+        data['random_agents'] = cols[1].number_input('Random Agents', value=obj['random_agents'], **input_kws)
+        data['random_infected'] = cols[2].number_input('Random Infected', value=obj['random_infected'], **input_kws)
 
-        data['default'] = json_input('Default Agent Configuration', obj['default'], AGENT_DEFAULT)
-        data['custom'] = json_input('Custom Agents', obj['custom'], [])
+        inputs = st.columns(2, border=True)
+        with inputs[0]:
+            data['default'] = json_input('Default Agent Configuration', obj['default'], AGENT_DEFAULT)
+        with inputs[1]:
+            data['custom'] = json_input('Custom Agents', obj['custom'], [])
 
         return data
 

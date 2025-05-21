@@ -27,10 +27,12 @@ class Viruses(GenericORM):
         obj = cls._get_defaults(obj_id)
 
         data['name'] = st.text_input('Name', value=obj['name'])
-        slider_kws = {'min_value': 0.0, 'max_value': 1.0, 'step': 0.001}
-        data['attack_rate'] = st.slider('Attack Rate', value=obj['attack_rate'], **slider_kws)
-        data['infection_rate'] = st.slider('Infection Rate', value=obj['infection_rate'], **slider_kws)
-        data['fatality_rate'] = st.slider('Fatality Rate', value=obj['fatality_rate'], **slider_kws)
+
+        numbers = st.columns(3)
+        number_kws = {'min_value': 0.0, 'max_value': 1.0, 'step': 0.001, 'format': '%0.3f'}
+        data['attack_rate'] = numbers[0].number_input('Attack Rate', value=obj['attack_rate'], **number_kws)
+        data['infection_rate'] = numbers[1].number_input('Infection Rate', value=obj['infection_rate'], **number_kws)
+        data['fatality_rate'] = numbers[2].number_input('Fatality Rate', value=obj['fatality_rate'], **number_kws)
 
         return data
 
