@@ -29,9 +29,14 @@ class Scenarios(GenericORM):
         obj = cls._get_defaults(obj_id)
 
         data['name'] = st.text_input('Name', value=obj['name'])
-        data['sim'] = obj_select('simulations', obj['sim'], label='Simulation')
-        data['virus'] = obj_select('viruses', obj['virus'], label='Virus')
-        data['prevention'] = obj_select('preventions', obj['prevention'], label='Prevention')
+
+        selects = st.columns(3)
+        with selects[0]:
+            data['sim'] = obj_select('simulations', obj['sim'], label='Simulation')
+        with selects[1]:
+            data['virus'] = obj_select('viruses', obj['virus'], label='Virus')
+        with selects[2]:
+            data['prevention'] = obj_select('preventions', obj['prevention'], label='Prevention')
 
         return data
 

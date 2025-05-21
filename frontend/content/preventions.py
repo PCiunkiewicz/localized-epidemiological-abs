@@ -37,8 +37,11 @@ class Preventions(GenericORM):
         obj = cls._get_defaults(obj_id)
 
         data['name'] = st.text_input('Name', value=obj['name'])
-        data['mask'] = json_input('Mask', value=obj['mask'], default=MASK_DEFAULT)
-        data['vax'] = json_input('Vaccine', value=obj['vax'], default=VAX_DEFAULT)
+        inputs = st.columns(2, border=True)
+        with inputs[0]:
+            data['mask'] = json_input('Mask Information', value=obj['mask'], default=MASK_DEFAULT)
+        with inputs[1]:
+            data['vax'] = json_input('Vaccine Information', value=obj['vax'], default=VAX_DEFAULT)
 
         return data
 

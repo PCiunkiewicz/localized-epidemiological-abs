@@ -3,6 +3,7 @@
 import json
 from abc import ABC, abstractmethod
 
+import requests
 import streamlit as st
 from streamlit_monaco import st_monaco
 
@@ -52,9 +53,9 @@ class GenericORM(ABC):
         """Generic ORM create operation."""
         with st.form(f'{cls.model}_create'):
             data = cls.form()
-            if st.form_submit_button('POST'):
+            if st.form_submit_button('Create'):
                 response = cls.api.post(data)
-                st.write(f'`POST {response.url}`', response, response.json())
+                cls._write_response(response)
 
     @classmethod
     def retrieve(cls) -> None:
@@ -62,9 +63,9 @@ class GenericORM(ABC):
         with st.form(f'{cls.model}_retrieve'):
             obj = st.selectbox(cls.model.capitalize(), cls.api.get().json(), format_func=cls._format)
             obj_id = obj.get('id') if isinstance(obj, dict) else obj
-            if st.form_submit_button('GET', disabled=not obj_id):
+            if st.form_submit_button('Retrieve', disabled=not obj_id):
                 response = cls.api.get(obj_id)
-                st.write(f'`GET {response.url}`', response, response.json())
+                cls._write_response(response)
 
     @classmethod
     def update(cls) -> None:
@@ -74,14 +75,13 @@ class GenericORM(ABC):
         with st.form(f'{cls.model}_update'):
             data = cls.form(obj_id)
 
-            patch, clone = st.columns([0.2, 0.8])
-            if patch.form_submit_button('PATCH', disabled=not obj_id):
-                # data = {k: v for k, v in data.items() if v}
+            patch, copy = st.columns([0.2, 0.8])
+            if patch.form_submit_button('Update', disabled=not obj_id):
                 response = cls.api.patch(obj_id, data)
                 st.write(f'`PATCH {response.url}`', response, response.json())
-            elif clone.form_submit_button('CLONE', disabled=not obj_id):
+            elif copy.form_submit_button('Copy', disabled=not obj_id):
                 response = cls.api.post(data)
-                st.write(f'`POST {response.url}`', response, response.json())
+                cls._write_response(response)
 
     @classmethod
     def delete(cls) -> None:
@@ -89,9 +89,28 @@ class GenericORM(ABC):
         with st.form(f'{cls.model}_delete'):
             obj = st.selectbox(cls.model.capitalize(), cls.api.get().json(), format_func=cls._format)
             obj_id = obj.get('id') if isinstance(obj, dict) else obj
-            if st.form_submit_button('DELETE', disabled=not obj_id):
+            if st.form_submit_button('Delete', disabled=not obj_id):
                 response = cls.api.delete(obj_id)
-                st.write(f'`DELETE {response.url}`', response)
+                cls._write_response(response)
+
+    @classmethod
+    def _write_response(cls, response: requests.Response) -> None:
+        """Format and write the response to the streamlit app."""
+        match response.request.method:
+            case 'POST':
+                msg = f'Creating new "{cls.model.capitalize()}" entry'
+            case 'GET':
+                msg = f'Retrieving "{cls.model.capitalize()}" entry'
+            case 'PATCH':
+                msg = f'Updating "{cls.model.capitalize()}" entry'
+            case 'DELETE':
+                msg = f'Deleting "{cls.model.capitalize()}" entry'
+
+        st.divider()
+        result = ':green[Success]' if response.ok else ':red[Failed]'
+        st.write(f'{msg} - **{result}**')
+        st.write(f'`{response.request.method} {response.url} -> [{response.status_code}] {response.reason}`')
+        st.json(response.json(), expanded=1 if response.ok else 2)
 
     @staticmethod
     def _format(obj: dict) -> str:
@@ -138,7 +157,7 @@ def json_input(label: str, value: dict | list, default: dict) -> dict | list | N
     """
     label = label.capitalize()
     st.write(label)
-    data = st_monaco(value=f'{json.dumps(value, indent=4)}', language='json')
+    data = st_monaco(value=f'{json.dumps(value, indent=4)}', language='json', height=300)
     try:
         return json.loads(data)
     except TypeError:

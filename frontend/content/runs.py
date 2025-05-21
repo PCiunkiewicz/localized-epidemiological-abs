@@ -27,9 +27,13 @@ class Runs(GenericORM):
         obj = cls._get_defaults(obj_id)
 
         data['name'] = st.text_input('Name', value=obj['name'])
-        data['scenario'] = obj_select('scenarios', obj['scenario'], label='Scenario')
-        data['agents'] = obj_select('agent_configs', obj['agents'], label='Agent Configuration')
-        data['runs'] = st.number_input('Runs', min_value=1, max_value=10000, value=obj['runs'])
+
+        cols = st.columns([0.4, 0.4, 0.2])
+        with cols[0]:
+            data['scenario'] = obj_select('scenarios', obj['scenario'], label='Scenario')
+        with cols[1]:
+            data['agents'] = obj_select('agent_configs', obj['agents'], label='Agent Configuration')
+        data['runs'] = cols[2].number_input('Runs', min_value=1, max_value=10000, value=obj['runs'])
 
         return data
 
