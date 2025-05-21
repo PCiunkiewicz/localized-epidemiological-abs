@@ -8,6 +8,7 @@ home_page = st.Page('content/home.py', title='Home')
 terrains_page = st.Page('content/terrains.py', title='Terrains')
 simulations_page = st.Page('content/simulations.py', title='Simulations')
 viruses_page = st.Page('content/viruses.py', title='Viruses')
+preventions_page = st.Page('content/preventions.py', title='Preventions')
 scenarios_page = st.Page('content/scenarios.py', title='Scenarios')
 agent_configs_page = st.Page('content/agent_configs.py', title='Agent Configs')
 runs_page = st.Page('content/runs.py', title='Runs')
@@ -20,6 +21,7 @@ pg = st.navigation(
         terrains_page,
         simulations_page,
         viruses_page,
+        preventions_page,
         scenarios_page,
         agent_configs_page,
         runs_page,

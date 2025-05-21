@@ -1,16 +1,21 @@
 """Agent Configuration Page."""
 
-import json
 from typing import override
 
 import streamlit as st
-from streamlit_monaco import st_monaco
 
-from components.orm import GenericORM
+from components.orm import GenericORM, json_input
 from utilities.api import GenericAPI
 
 AGENT_DEFAULT = {
-    'info': {},
+    'info': {
+        'mask_type': '',
+        'vax_type': '',
+        'vax_doses': 0,
+        'schedule': {},
+        'work_zone': None,
+        'start_zone': None,
+    },
     'state': {
         'x': 0,
         'y': 0,
@@ -18,56 +23,34 @@ AGENT_DEFAULT = {
     },
 }
 
-CUSTOM_DEFAULT = [
-    {
-        'info': {
-            'schedule': {},
-            'work_zone': None,
-            'start_zone': None,
-        },
-        'state': {
-            'status': 'UNKNOWN',
-        },
-    },
-]
-
 
 class AgentConfigs(GenericORM):
     """Agent Configuration ORM."""
 
     model = 'agent_configs'
     api = GenericAPI(model)
+    defaults = {
+        'name': '',
+        'default': AGENT_DEFAULT,
+        'random_agents': 0,
+        'random_infected': 0,
+        'custom': [],
+    }
 
     @override
     @classmethod
-    def form(cls) -> dict:
+    def form(cls, obj_id: int | None = None) -> dict:
         data = {}
+        obj = cls._get_defaults(obj_id)
 
-        data['name'] = st.text_input('Name')
-        st.write('Default Agent Configuration')
-        default = st_monaco(value=f'{json.dumps(AGENT_DEFAULT, indent=4)}', language='json')
-        try:
-            data['default'] = json.loads(default)
-        except TypeError:
-            data['default'] = AGENT_DEFAULT
-        except json.decoder.JSONDecodeError:
-            data['default'] = None
-            st.warning('Invalid Default Agent Configuration JSON, check your syntax')
+        data['name'] = st.text_input('Name', value=obj['name'])
 
-        data['random_agents'] = st.number_input('Random Agents', min_value=0, max_value=1000, value=0)
-        data['random_infected'] = st.number_input('Random Infected', min_value=0, max_value=1000, value=0)
+        input_kws = {'min_value': 0, 'max_value': 1000}
+        data['random_agents'] = st.number_input('Random Agents', value=obj['random_agents'], **input_kws)
+        data['random_infected'] = st.number_input('Random Infected', value=obj['random_infected'], **input_kws)
 
-        st.write('Custom Agent Configuration')
-        custom = st_monaco(value=f'{json.dumps(CUSTOM_DEFAULT, indent=4)}', language='json')
-        try:
-            data['custom'] = json.loads(custom)
-            if data['custom'] == CUSTOM_DEFAULT:
-                data['custom'] = []
-        except TypeError:
-            data['custom'] = None
-        except json.decoder.JSONDecodeError:
-            data['custom'] = None
-            st.warning('Invalid Custom Agent Configuration JSON, check your syntax')
+        data['default'] = json_input('Default Agent Configuration', obj['default'], AGENT_DEFAULT)
+        data['custom'] = json_input('Custom Agents', obj['custom'], [])
 
         return data
 

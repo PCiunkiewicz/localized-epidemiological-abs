@@ -16,7 +16,7 @@ class Terrains(GenericORM):
 
     @override
     @classmethod
-    def form(cls) -> dict:
+    def form(cls, obj_id: int | None = None) -> dict:
         data = {}
         data['name'] = st.text_input('Name').upper()
         color = st.color_picker('Pick A Color', '#00f900')

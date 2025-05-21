@@ -1,12 +1,10 @@
 """Scenarios page."""
 
-import json
 from typing import override
 
 import streamlit as st
-from streamlit_monaco import st_monaco
 
-from components.orm import GenericORM
+from components.orm import GenericORM, obj_select
 from utilities.api import GenericAPI
 
 PREVENTION_DEFAULT = {'mask': {}, 'vax': {}}
@@ -17,25 +15,23 @@ class Scenarios(GenericORM):
 
     model = 'scenarios'
     api = GenericAPI(model)
+    defaults = {
+        'name': '',
+        'sim': None,
+        'virus': None,
+        'prevention': PREVENTION_DEFAULT,
+    }
 
     @override
     @classmethod
-    def form(cls) -> dict:
+    def form(cls, obj_id: int | None = None) -> dict:
         data = {}
-        data['name'] = st.text_input('Name')
-        obj = st.selectbox('Simulation', GenericAPI('simulations').get().json(), format_func=cls._format)
-        data['sim'] = obj.get('id') if isinstance(obj, dict) else obj
-        obj = st.selectbox('Virus', GenericAPI('viruses').get().json(), format_func=cls._format)
-        data['virus'] = obj.get('id') if isinstance(obj, dict) else obj
-        st.write('Prevention')
-        prevention = st_monaco(value=f'{json.dumps(PREVENTION_DEFAULT, indent=4)}', language='json')
-        try:
-            data['prevention'] = json.loads(prevention)
-        except TypeError:
-            data['prevention'] = PREVENTION_DEFAULT
-        except json.decoder.JSONDecodeError:
-            data['prevention'] = None
-            st.warning('Invalid Prevention JSON, check your syntax')
+        obj = cls._get_defaults(obj_id)
+
+        data['name'] = st.text_input('Name', value=obj['name'])
+        data['sim'] = obj_select('simulations', obj['sim'], label='Simulation')
+        data['virus'] = obj_select('viruses', obj['virus'], label='Virus')
+        data['prevention'] = obj_select('preventions', obj['prevention'], label='Prevention')
 
         return data
 

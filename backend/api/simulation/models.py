@@ -63,20 +63,28 @@ class Virus(BaseModel):
     fatality_rate = models.FloatField(default=0.01, validators=[MinValueValidator(0)])
 
 
+class Prevention(BaseModel):
+    """Prevention Model representing the prevention parameters."""
+
+    name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
+    mask = models.JSONField()
+    vax = models.JSONField()
+
+
 class Scenario(BaseModel):
     """Scenario Model representing combined parameters for simulation scenarios."""
 
     name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
     sim = models.ForeignKey(Simulation, on_delete=models.CASCADE)
     virus = models.ForeignKey(Virus, on_delete=models.CASCADE)
-    prevention = models.JSONField()  # TODO: figure out best structure for this, maybe split vax and mask as models?
+    prevention = models.ForeignKey(Prevention, on_delete=models.CASCADE)
 
 
 class AgentConfig(BaseModel):
     """Agent Configuration Model representing the agent parameters."""
 
     name = models.CharField(max_length=250, unique=True, validators=[validate_slug])
-    default = models.JSONField(default=dict)  # TODO: come back and finish this json validation
+    default = models.JSONField(default=dict)
     random_agents = models.PositiveIntegerField()
     random_infected = models.PositiveIntegerField()
     custom = models.JSONField(default=list)
